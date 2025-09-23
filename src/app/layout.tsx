@@ -24,6 +24,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      {/* ✅ Add head so Next.js can inject metadata correctly */}
+      <head />
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

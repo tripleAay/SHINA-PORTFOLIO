@@ -4,9 +4,9 @@ import React, { useState, useContext } from 'react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { FiExternalLink, FiSearch } from 'react-icons/fi';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// ✅ Tile type
+// Tile type
 type Tile = {
   id: number;
   image: string;
@@ -17,10 +17,10 @@ type Tile = {
   category: string;
 };
 
-const Portfolio = () => {
+const Portfolio: React.FC = () => {
   const { lightMode } = useContext(ThemeContext);
 
-  const initialTiles: Tile[] = [
+  const tiles: Tile[] = [
     {
       id: 1,
       image: 'https://via.placeholder.com/600x400',
@@ -70,23 +70,19 @@ const Portfolio = () => {
 
   const categories = ['All', 'Web', 'Mobile', 'Design'];
 
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedImage, setSelectedImage] = useState<Tile | null>(null);
 
-  // ✅ Filter logic
   const filteredTiles =
     selectedCategory === 'All'
-      ? initialTiles
-      : initialTiles.filter((tile) => tile.category === selectedCategory);
-
-  const handleImageClick = (tile: Tile) => setSelectedImage(tile);
-  const closeModal = () => setSelectedImage(null);
+      ? tiles
+      : tiles.filter((tile) => tile.category === selectedCategory);
 
   return (
     <section
       id="portfolio"
-      className={`py-20 px-6 transition-colors ${
-        lightMode ? 'bg-gray-900' : 'bg-[#FFFBFC]'
+      className={`py-20 px-6 transition-colors duration-500 ${
+        lightMode ? 'bg-gray-900' : 'bg-gray-100'
       }`}
     >
       <div className="max-w-7xl mx-auto">
@@ -103,7 +99,8 @@ const Portfolio = () => {
             lightMode ? 'text-gray-400' : 'text-gray-600'
           }`}
         >
-          A curated collection of my recent projects — crafted with passion and precision.
+          A curated collection of my recent projects — crafted with passion and
+          precision.
         </p>
 
         {/* Filters */}
@@ -112,7 +109,7 @@ const Portfolio = () => {
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-6 py-2 rounded-full font-medium transition ${
+              className={`px-6 py-2 rounded-full font-medium transition-all duration-300 ${
                 selectedCategory === cat
                   ? 'bg-yellow-500 text-gray-900 shadow-lg'
                   : lightMode
@@ -149,8 +146,9 @@ const Portfolio = () => {
               {/* Overlay */}
               <div className="absolute inset-0 bg-black/50 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition duration-500 flex items-center justify-center gap-4">
                 <button
-                  onClick={() => handleImageClick(tile)}
+                  onClick={() => setSelectedImage(tile)}
                   className="p-3 bg-white text-gray-800 rounded-full shadow-md hover:bg-yellow-400 hover:text-gray-900 transition"
+                  aria-label="Preview project"
                 >
                   <FiSearch size={20} />
                 </button>
@@ -159,6 +157,7 @@ const Portfolio = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-3 bg-white text-gray-800 rounded-full shadow-md hover:bg-yellow-400 hover:text-gray-900 transition"
+                  aria-label="Open project"
                 >
                   <FiExternalLink size={20} />
                 </a>
@@ -190,25 +189,38 @@ const Portfolio = () => {
         </motion.div>
 
         {/* Modal */}
-        {selectedImage && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-6">
-            <div className="relative max-w-4xl w-full">
-              <Image
-                src={selectedImage.image}
-                alt={selectedImage.alt}
-                width={1200}
-                height={800}
-                className="w-full max-h-[80vh] object-cover rounded-xl shadow-xl"
-              />
-              <button
-                onClick={closeModal}
-                className="absolute top-4 right-4 bg-white text-gray-800 p-2 rounded-full shadow-md hover:bg-yellow-400 hover:text-gray-900 transition"
+        <AnimatePresence>
+          {selectedImage && (
+            <motion.div
+              className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div
+                className="relative max-w-4xl w-full"
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.9 }}
               >
-                ✕
-              </button>
-            </div>
-          </div>
-        )}
+                <Image
+                  src={selectedImage.image}
+                  alt={selectedImage.alt}
+                  width={1200}
+                  height={800}
+                  className="w-full max-h-[80vh] object-cover rounded-xl shadow-xl"
+                />
+                <button
+                  onClick={() => setSelectedImage(null)}
+                  className="absolute top-4 right-4 bg-white text-gray-800 p-2 rounded-full shadow-md hover:bg-yellow-400 hover:text-gray-900 transition"
+                  aria-label="Close preview"
+                >
+                  ✕
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </section>
   );

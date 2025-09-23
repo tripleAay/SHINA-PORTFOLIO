@@ -10,7 +10,7 @@ const About = () => {
     <div
       id="about"
       className={`transition-all duration-300 ease-in-out min-h-screen flex items-center justify-center px-6 ${
-        lightMode ? 'bg-gray-900' : 'bg-[#FFFBFC]'
+        lightMode ? 'bg-gray-900' : 'bg-gray-100'
       }`}
     >
       <div className="max-w-4xl mx-auto text-gray-300">

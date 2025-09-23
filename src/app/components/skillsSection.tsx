@@ -46,7 +46,7 @@ const SkillsSection = () => {
     <section
       id="skills"
       className={`min-h-screen flex flex-col items-center justify-center px-6 py-12 transition-all duration-300 ease-in-out ${
-        lightMode ? 'bg-gray-900' : 'bg-[#FFFBFC]'
+        lightMode ? 'bg-gray-900' : 'bg-gray-100'
       }`}
     >
       <h2

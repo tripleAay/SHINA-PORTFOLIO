@@ -1,10 +1,7 @@
 'use client'; // Required for Next.js client-side component
-
-import React from 'react';
-import { motion } from 'framer-motion';
-import { useContext } from 'react';
+import React, { useContext } from 'react';
+import { motion, Variants } from 'framer-motion';
 import { ThemeContext } from '../contexts/ThemeContext';
-import { Variants } from "framer-motion";
 
 const Footer = () => {
   const { lightMode } = useContext(ThemeContext);
@@ -15,10 +12,9 @@ const Footer = () => {
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.6, ease: [0, 0, 0.58, 1] }, // ✅ correct easing
+      transition: { duration: 0.6, ease: [0, 0, 0.58, 1] },
     },
   };
-
 
   const iconVariants = {
     hover: {
@@ -30,8 +26,9 @@ const Footer = () => {
 
   return (
     <motion.footer
-      className={`w-full py-8 ${lightMode ? 'bg-gray-100' : 'bg-gray-900'
-        } transition-colors duration-500`}
+      className={`w-full py-8 border-t transition-colors duration-500
+        ${lightMode ? 'bg-black border-gray-800' : 'bg-black border-gray-800'}
+      `}
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -39,10 +36,10 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between">
         {/* Personal Branding */}
         <div className="text-center md:text-left mb-4 md:mb-0">
-          <p className="text-sm md:text-base font-medium text-gray-600 dark:text-gray-300">
+          <p className="text-sm md:text-base font-medium text-white">
             Designed & Built by{' '}
             <motion.span
-              className="text-yellow-500 dark:text-amber-400 font-semibold"
+              className="text-yellow-400 font-semibold"
               whileHover={{ scale: 1.05 }}
               transition={{ duration: 0.2 }}
             >
@@ -55,12 +52,16 @@ const Footer = () => {
         {/* Social Links */}
         <div className="flex space-x-6">
           <motion.a
-            href="https://www.linkedin.com/in/tripleaay?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app"
+            href="https://www.linkedin.com/in/tripleaay"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-gray-500 dark:text-gray-400 hover:text-yellow-500 dark:hover:text-amber-400 transition-colors duration-300"
+            className="text-white hover:text-yellow-400 transition-all duration-300"
             variants={iconVariants}
-            whileHover="hover"
+            whileHover={{
+              scale: 1.2,
+              rotate: 5,
+              textShadow: '0px 0px 6px rgba(250, 204, 21, 0.8)',
+            }}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -72,13 +73,18 @@ const Footer = () => {
             </svg>
             <span className="sr-only">LinkedIn</span>
           </motion.a>
+
           <motion.a
             href="https://github.com/tripleAay"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-gray-500 dark:text-gray-400 hover:text-yellow-500 dark:hover:text-amber-400 transition-colors duration-300"
+            className="text-white hover:text-yellow-400 transition-all duration-300"
             variants={iconVariants}
-            whileHover="hover"
+            whileHover={{
+              scale: 1.2,
+              rotate: 5,
+              textShadow: '0px 0px 6px rgba(250, 204, 21, 0.8)',
+            }}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

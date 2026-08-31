@@ -1,11 +1,15 @@
-'use client'; // ✅ Required for Next.js client-side component
 
-import React, { useState, useContext } from 'react';
+'use client';
+
+import React, { useContext, useState } from 'react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiMail, FiUser, FiMessageCircle } from 'react-icons/fi';
+import {
+  FiArrowUpRight,
+  FiCheck,
+  FiMail,
+} from 'react-icons/fi';
 
-// ✅ Type for form data
 interface FormData {
   name: string;
   email: string;
@@ -14,127 +18,341 @@ interface FormData {
 
 const ContactForm: React.FC = () => {
   const { lightMode } = useContext(ThemeContext);
-  const [formData, setFormData] = useState<FormData>({ name: '', email: '', message: '' });
+
+  const [formData, setFormData] = useState<FormData>({
+    name: '',
+    email: '',
+    message: '',
+  });
+
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  // Handle change
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  // Handle submit
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     console.log('Form Submitted:', formData);
 
     setIsSubmitted(true);
-    setFormData({ name: '', email: '', message: '' });
 
-    setTimeout(() => setIsSubmitted(false), 4000);
+    setFormData({
+      name: '',
+      email: '',
+      message: '',
+    });
+
+    setTimeout(() => {
+      setIsSubmitted(false);
+    }, 5000);
   };
 
   return (
     <section
       id="contact"
-      className={`min-h-screen flex items-center justify-center px-6 py-16 transition-colors duration-500 ${
-        lightMode ? 'bg-gray-100' : 'bg-gray-100'
+      aria-labelledby="contact-title"
+      className={`relative overflow-hidden transition-colors duration-500 ${
+        lightMode
+          ? 'bg-gray-950 text-white'
+          : 'bg-gray-50 text-gray-950'
       }`}
     >
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-        className="max-w-3xl w-full bg-white/80 dark:bg-gray-800/70 backdrop-blur-md rounded-3xl shadow-2xl p-10 md:p-14 border border-white/20"
-      >
-        {/* Header */}
-        <header className="text-center mb-12">
-          <h2 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-orange-600 drop-shadow-sm">
-            Let’s Talk
-          </h2>
-          <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-            Have an idea or project? I’d love to hear from you. Fill out the form and let’s connect.
-          </p>
-        </header>
+      {/* Extremely subtle background detail */}
+      <div
+        className={`pointer-events-none absolute inset-0 opacity-[0.018] ${
+          lightMode ? 'text-white' : 'text-black'
+        }`}
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
+          backgroundSize: '90px 90px',
+        }}
+      />
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Name */}
-            <div className="relative">
-              <FiUser className="absolute top-3.5 left-3 text-gray-400 dark:text-gray-500" size={20} />
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="Your Name"
-                required
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700/60 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-yellow-500 outline-none transition"
-              />
-            </div>
+      <div className="relative mx-auto max-w-6xl px-6 py-24 sm:px-8 lg:px-10 lg:py-32">
 
-            {/* Email */}
-            <div className="relative">
-              <FiMail className="absolute top-3.5 left-3 text-gray-400 dark:text-gray-500" size={20} />
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="Your Email"
-                required
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700/60 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-yellow-500 outline-none transition"
-              />
-            </div>
-          </div>
+        {/* Small section marker */}
+        <div className="mb-14 flex items-center gap-3">
+          <span className="h-px w-8 bg-yellow-400" />
 
-          {/* Message */}
-          <div className="relative">
-            <FiMessageCircle className="absolute top-3.5 left-3 text-gray-400 dark:text-gray-500" size={20} />
-            <textarea
-              name="message"
-              value={formData.message}
-              onChange={handleChange}
-              placeholder="Write your message..."
-              rows={6}
-              required
-              className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700/60 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-yellow-500 outline-none transition resize-none"
-            />
-          </div>
+          <span
+            className={`text-[10px] font-semibold uppercase tracking-[0.24em] ${
+              lightMode ? 'text-gray-500' : 'text-gray-400'
+            }`}
+          >
+            Contact
+          </span>
+        </div>
 
-          {/* Submit */}
-          <div className="text-center">
-            <motion.button
-              type="submit"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-10 py-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all duration-300"
+        <div className="grid gap-16 lg:grid-cols-[0.8fr_1.2fr] lg:gap-24">
+
+          {/* =========================
+              LEFT — INTRO
+          ========================== */}
+          <div className="max-w-md">
+
+            <h2
+              id="contact-title"
+              className="text-4xl font-semibold leading-[1.05] tracking-[-0.04em] sm:text-5xl"
             >
-              Send Message
-            </motion.button>
-          </div>
-        </form>
+              Let's build something
+              <span className="text-yellow-400"> meaningful.</span>
+            </h2>
 
-        {/* Confirmation */}
-        <AnimatePresence>
-          {isSubmitted && (
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.4 }}
-              className="mt-8 text-center"
+            <p
+              className={`mt-6 max-w-sm text-sm leading-7 sm:text-base ${
+                lightMode
+                  ? 'text-gray-400'
+                  : 'text-gray-600'
+              }`}
             >
-              <p className="text-green-600 dark:text-green-400 font-semibold text-lg">
-                ✅ Thanks! Your message was sent successfully.
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+              Have a product idea, a website to build, or a problem
+              worth solving? Tell me a little about it and I'll get
+              back to you.
+            </p>
+
+            {/* Direct email */}
+            <a
+              href="mailto:hello@adeshinaadedokun.com"
+              className={`group mt-8 inline-flex items-center gap-3 text-sm font-medium transition-colors ${
+                lightMode
+                  ? 'text-gray-300 hover:text-yellow-400'
+                  : 'text-gray-700 hover:text-yellow-500'
+              }`}
+            >
+              <FiMail className="text-yellow-400" />
+
+              <span>hello@adeshinaadedokun.com</span>
+
+              <FiArrowUpRight
+                className="text-xs transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              />
+            </a>
+
+            {/* Availability */}
+            <div
+              className={`mt-10 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] ${
+                lightMode
+                  ? 'text-gray-600'
+                  : 'text-gray-400'
+              }`}
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inset-0 animate-ping rounded-full bg-green-400 opacity-60" />
+                <span className="relative h-2 w-2 rounded-full bg-green-400" />
+              </span>
+
+              Available for selected projects
+            </div>
+          </div>
+
+          {/* =========================
+              RIGHT — FORM
+          ========================== */}
+          <div className="w-full max-w-2xl lg:ml-auto">
+
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-8"
+            >
+
+              {/* Name + Email */}
+              <div className="grid gap-8 sm:grid-cols-2">
+
+                <div className="group">
+                  <label
+                    htmlFor="name"
+                    className={`mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] ${
+                      lightMode
+                        ? 'text-gray-500'
+                        : 'text-gray-400'
+                    }`}
+                  >
+                    Name
+                  </label>
+
+                  <input
+                    id="name"
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Your name"
+                    required
+                    className={`w-full border-0 border-b bg-transparent px-0 py-3 text-sm outline-none transition-colors placeholder:text-gray-500 focus:ring-0 ${
+                      lightMode
+                        ? 'border-white/10 text-white focus:border-yellow-400'
+                        : 'border-gray-900/10 text-gray-900 focus:border-yellow-500'
+                    }`}
+                  />
+                </div>
+
+                <div className="group">
+                  <label
+                    htmlFor="email"
+                    className={`mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] ${
+                      lightMode
+                        ? 'text-gray-500'
+                        : 'text-gray-400'
+                    }`}
+                  >
+                    Email
+                  </label>
+
+                  <input
+                    id="email"
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="you@example.com"
+                    required
+                    className={`w-full border-0 border-b bg-transparent px-0 py-3 text-sm outline-none transition-colors placeholder:text-gray-500 focus:ring-0 ${
+                      lightMode
+                        ? 'border-white/10 text-white focus:border-yellow-400'
+                        : 'border-gray-900/10 text-gray-900 focus:border-yellow-500'
+                    }`}
+                  />
+                </div>
+
+              </div>
+
+              {/* Message */}
+              <div>
+                <label
+                  htmlFor="message"
+                  className={`mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] ${
+                    lightMode
+                      ? 'text-gray-500'
+                      : 'text-gray-400'
+                  }`}
+                >
+                  Project details
+                </label>
+
+                <textarea
+                  id="message"
+                  name="message"
+                  value={formData.message}
+                  onChange={handleChange}
+                  placeholder="Tell me about what you're building..."
+                  rows={5}
+                  required
+                  className={`w-full resize-none border-0 border-b bg-transparent px-0 py-3 text-sm leading-7 outline-none transition-colors placeholder:text-gray-500 focus:ring-0 ${
+                    lightMode
+                      ? 'border-white/10 text-white focus:border-yellow-400'
+                      : 'border-gray-900/10 text-gray-900 focus:border-yellow-500'
+                  }`}
+                />
+              </div>
+
+              {/* Submit */}
+              <div className="flex items-center justify-between pt-2">
+
+                <p
+                  className={`hidden text-[10px] leading-5 sm:block ${
+                    lightMode
+                      ? 'text-gray-600'
+                      : 'text-gray-400'
+                  }`}
+                >
+                  Usually responds within 1–2 business days.
+                </p>
+
+                <motion.button
+                  type="submit"
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="group inline-flex items-center gap-3 rounded-full bg-yellow-400 px-6 py-3 text-sm font-semibold text-gray-950 transition-all duration-200 hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2"
+                >
+                  Send message
+
+                  <FiArrowUpRight className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </motion.button>
+
+              </div>
+            </form>
+
+            {/* Success state */}
+            <AnimatePresence>
+              {isSubmitted && (
+                <motion.div
+                  initial={{
+                    opacity: 0,
+                    y: 8,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  exit={{
+                    opacity: 0,
+                    y: -8,
+                  }}
+                  className={`mt-8 flex items-center gap-3 text-sm ${
+                    lightMode
+                      ? 'text-green-400'
+                      : 'text-green-600'
+                  }`}
+                >
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-400/10">
+                    <FiCheck />
+                  </span>
+
+                  Thanks — your message has been received.
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+          </div>
+        </div>
+
+        {/* Bottom rule */}
+        <div
+          className={`mt-24 border-t pt-5 ${
+            lightMode
+              ? 'border-white/10'
+              : 'border-gray-900/10'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+
+            <span
+              className={`text-[10px] uppercase tracking-[0.18em] ${
+                lightMode
+                  ? 'text-gray-600'
+                  : 'text-gray-400'
+              }`}
+            >
+              Adeshina Adedokun
+            </span>
+
+            <span
+              className={`text-[10px] ${
+                lightMode
+                  ? 'text-gray-600'
+                  : 'text-gray-400'
+              }`}
+            >
+              Lagos · Nigeria
+            </span>
+
+          </div>
+        </div>
+
+      </div>
     </section>
   );
 };
 
 export default ContactForm;
+

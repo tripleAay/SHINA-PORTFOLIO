@@ -1,54 +1,49 @@
 'use client';
 
-import React, { useContext } from 'react';
-import Image from 'next/image';
+import { useContext } from 'react';
 import { ThemeContext } from '../contexts/ThemeContext';
 
 const SkillsSection = () => {
   const { lightMode } = useContext(ThemeContext);
 
-  const skillCategories = [
+  const skillGroups = [
     {
-      title: 'Core Development',
+      number: '01',
+      title: 'Engineering',
+      description:
+        'Building reliable, scalable web products from the frontend to the backend.',
       skills: [
-        { name: 'TypeScript', logo: 'https://www.vectorlogo.zone/logos/typescriptlang/typescriptlang-icon.svg' },
-        { name: 'JavaScript', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg' },
-        { name: 'React.js', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg' },
-        { name: 'Next.js', logo: 'https://cdn.worldvectorlogo.com/logos/nextjs-2.svg' },
-        { name: 'Node.js', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg' },
-        { name: 'Express.js', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/express/express-original.svg' },
-        { name: 'MongoDB', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg' },
-        { name: 'Firebase', logo: 'https://www.vectorlogo.zone/logos/firebase/firebase-icon.svg' },
+        'React',
+        'Next.js',
+        'TypeScript',
+        'Node.js',
+        'Firebase',
+        'Supabase',
       ],
     },
     {
-      title: 'Frontend & Styling',
+      number: '02',
+      title: 'Product',
+      description:
+        'Turning product requirements into thoughtful systems and intuitive experiences.',
       skills: [
-        { name: 'Tailwind CSS', logo: 'https://www.vectorlogo.zone/logos/tailwindcss/tailwindcss-icon.svg' },
-        { name: 'HTML5', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg' },
-        { name: 'CSS3', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg' },
-        { name: 'Framer Motion', logo: 'https://cdn.worldvectorlogo.com/logos/framer.svg' },
+        'Architecture',
+        'APIs',
+        'Authentication',
+        'Payments',
+        'Responsive UI',
       ],
     },
     {
-      title: 'Creative & Branding',
+      number: '03',
+      title: 'Design',
+      description:
+        'Bringing product thinking and visual design together to create coherent brands and interfaces.',
       skills: [
-        { name: 'Adobe Photoshop', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/photoshop/photoshop-plain.svg' },
-        { name: 'Adobe Illustrator', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/illustrator/illustrator-plain.svg' },
-        { name: 'CorelDRAW', logo: 'https://img.icons8.com/color/512/coreldraw.png' },
-        { name: 'Adobe Premiere Pro', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/premierepro/premierepro-original.svg' },
-        { name: 'Brand Design', logo: 'https://img.icons8.com/external-flaticons-lineal-color-flat-icons/512/external-branding-marketing-agency-flaticons-lineal-color-flat-icons.png' },
-        { name: 'Storytelling', logo: 'https://img.icons8.com/external-flat-juicy-fish/512/external-storytelling-online-marketing-flat-flat-juicy-fish.png' },
-      ],
-    },
-    {
-      title: 'Tools & Platforms',
-      skills: [
-        { name: 'GitHub', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg' },
-        { name: 'Git', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/git/git-original.svg' },
-        { name: 'Figma', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/figma/figma-original.svg' },
-        { name: 'WordPress', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/wordpress/wordpress-plain.svg' },
-        { name: 'Shopify', logo: 'https://cdn.worldvectorlogo.com/logos/shopify.svg' },
+        'UI/UX',
+        'Brand Design',
+        'Figma',
+        'Adobe Creative Suite',
       ],
     },
   ];
@@ -56,63 +51,171 @@ const SkillsSection = () => {
   return (
     <section
       id="skills"
-      className={`min-h-screen flex flex-col items-center justify-center px-6 py-16 relative overflow-hidden transition-all duration-500 ${
-        lightMode ? 'bg-gray-900' : 'bg-gray-100'
+      aria-labelledby="skills-title"
+      className={`relative overflow-hidden transition-colors duration-300 ${
+        lightMode
+          ? 'bg-gray-950 text-white'
+          : 'bg-gray-50 text-gray-950'
       }`}
     >
-      {/* Background Glow */}
-      <div className="absolute inset-0 blur-3xl opacity-20 bg-grey-400"></div>
-
-      <h2
-        className={`relative z-10 text-5xl font-extrabold mb-16 text-center tracking-tight ${
-          lightMode ? 'text-white' : 'text-gray-800'
+      {/* Extremely subtle background grid */}
+      <div
+        className={`pointer-events-none absolute inset-0 opacity-[0.018] ${
+          lightMode ? 'text-white' : 'text-black'
         }`}
-      >
-        ⚡ My Superpowers
-      </h2>
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
+          backgroundSize: '80px 80px',
+        }}
+      />
 
-      <div className="space-y-20 w-full max-w-7xl relative z-10">
-        {skillCategories.map((category, index) => (
-          <div key={index}>
-            <h3
-              className={`text-2xl md:text-3xl font-bold mb-10 text-center ${
-                lightMode ? 'text-yellow-400' : 'text-gray-700'
+      <div className="relative mx-auto max-w-6xl px-6 py-24 sm:px-8 lg:px-10 lg:py-32">
+
+        {/* =========================
+            SECTION INTRO
+        ========================== */}
+        <div className="max-w-2xl">
+          <div className="mb-5 flex items-center gap-3">
+            <span className="h-px w-7 bg-yellow-400" />
+
+            <span
+              className={`text-[10px] font-semibold uppercase tracking-[0.24em] ${
+                lightMode
+                  ? 'text-gray-500'
+                  : 'text-gray-400'
               }`}
             >
-              {category.title}
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-10 items-center justify-center">
-              {category.skills.map((skill, idx) => (
-                <div
-                  key={idx}
-                  className={`flex flex-col items-center justify-center gap-4 p-6 rounded-2xl shadow-xl backdrop-blur-md transform hover:scale-110 hover:-rotate-1 transition duration-500 ${
+              Capabilities
+            </span>
+          </div>
+
+          <h2
+            id="skills-title"
+            className="text-3xl font-semibold tracking-[-0.035em] sm:text-4xl lg:text-5xl"
+          >
+            I build across the
+            <span className="text-yellow-400"> product.</span>
+          </h2>
+
+          <p
+            className={`mt-5 max-w-xl text-sm leading-7 sm:text-base ${
+              lightMode
+                ? 'text-gray-400'
+                : 'text-gray-500'
+            }`}
+          >
+            From architecture and interfaces to visual identity,
+            I bring engineering, product thinking and design into
+            one workflow.
+          </p>
+        </div>
+
+        {/* =========================
+            CAPABILITY LIST
+        ========================== */}
+        <div className="mt-16 border-t border-current/10">
+          {skillGroups.map((group) => (
+            <div
+              key={group.number}
+              className={`group grid gap-8 border-b py-10 transition-colors duration-300 lg:grid-cols-[80px_0.8fr_1.2fr] lg:items-start ${
+                lightMode
+                  ? 'border-gray-900/10'
+                  : 'border-white/10'
+              }`}
+            >
+              {/* Number */}
+              <span
+                className={`text-[10px] font-medium tracking-[0.18em] ${
+                  lightMode
+                    ? 'text-gray-400'
+                    : 'text-gray-600'
+                }`}
+              >
+                {group.number}
+              </span>
+
+              {/* Title + description */}
+              <div>
+                <h3
+                  className={`text-xl font-semibold tracking-[-0.02em] transition-colors duration-300 ${
                     lightMode
-                      ? 'bg-gray-800/80 hover:shadow-yellow-400/40'
-                      : 'bg-white/70 hover:shadow-lg'
+                      ? 'text-gray-950 group-hover:text-yellow-500'
+                      : 'text-white group-hover:text-yellow-400'
                   }`}
                 >
-                  <Image
-                    src={skill.logo}
-                    alt={`${skill.name} logo`}
-                    width={64}
-                    height={64}
-                    className="w-16 h-16 object-contain drop-shadow-md"
-                  />
-                  <p
-                    className={`text-lg font-semibold tracking-wide ${
-                      lightMode ? 'text-white' : 'text-gray-800'
+                  {group.title}
+                </h3>
+
+                <p
+                  className={`mt-3 max-w-sm text-sm leading-6 ${
+                    lightMode
+                      ? 'text-gray-500'
+                      : 'text-gray-500'
+                  }`}
+                >
+                  {group.description}
+                </p>
+              </div>
+
+              {/* Skills */}
+              <div className="flex flex-wrap content-start gap-x-2 gap-y-2">
+                {group.skills.map((skill, index) => (
+                  <span
+                    key={skill}
+                    className={`text-sm transition-colors duration-200 ${
+                      lightMode
+                        ? 'text-gray-600'
+                        : 'text-gray-400'
                     }`}
                   >
-                    {skill.name}
-                  </p>
-                </div>
-              ))}
+                    {skill}
+                    {index < group.skills.length - 1 && (
+                      <span
+                        className={`ml-2 ${
+                          lightMode
+                            ? 'text-gray-300'
+                            : 'text-gray-700'
+                        }`}
+                      >
+                        ·
+                      </span>
+                    )}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+
+        {/* =========================
+            BOTTOM NOTE
+        ========================== */}
+        <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p
+            className={`text-[11px] leading-5 ${
+              lightMode
+                ? 'text-gray-400'
+                : 'text-gray-600'
+            }`}
+          >
+            A focused stack for building modern digital products.
+          </p>
+
+          <span
+            className={`text-[10px] uppercase tracking-[0.18em] ${
+              lightMode
+                ? 'text-gray-400'
+                : 'text-gray-600'
+            }`}
+          >
+            Engineering · Product · Design
+          </span>
+        </div>
       </div>
     </section>
   );
 };
 
 export default SkillsSection;
+

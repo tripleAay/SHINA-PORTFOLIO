@@ -1,141 +1,384 @@
+
 'use client';
 
-import { useContext, useState, useEffect } from 'react';
+import { useContext } from 'react';
 import Image from 'next/image';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTwitter, faLinkedinIn, faWhatsapp } from '@fortawesome/free-brands-svg-icons';
-import { faPhone } from '@fortawesome/free-solid-svg-icons';
+import {
+  faArrowRight,
+  faCode,
+  faPhone,
+} from '@fortawesome/free-solid-svg-icons';
+import {
+  faTwitter,
+  faLinkedinIn,
+  faWhatsapp,
+} from '@fortawesome/free-brands-svg-icons';
+
 import { ThemeContext } from '../contexts/ThemeContext';
 import picB from '../assets/images/pic b.png';
 
 const Hero = () => {
   const { lightMode } = useContext(ThemeContext);
 
-  // Typing effect
-  const fullText = "Shina Adedokun";
-  const [displayText, setDisplayText] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [loop, setLoop] = useState(0);
+  const scrollToContact = () => {
+    document
+      .getElementById('contact')
+      ?.scrollIntoView({ behavior: 'smooth' });
+  };
 
-  const typingSpeed = isDeleting ? 80 : 150;
-
-  useEffect(() => {
-    const handleTyping = () => {
-      const updatedText = isDeleting
-        ? fullText.substring(0, displayText.length - 1)
-        : fullText.substring(0, displayText.length + 1);
-
-      setDisplayText(updatedText);
-
-      if (!isDeleting && updatedText === fullText) {
-        setTimeout(() => setIsDeleting(true), 1200); // pause before deleting
-      } else if (isDeleting && updatedText === "") {
-        setIsDeleting(false);
-        setLoop(loop + 1); // loop again
-      }
-    };
-
-    const timer = setTimeout(handleTyping, typingSpeed);
-    return () => clearTimeout(timer);
-  }, [displayText, isDeleting, loop]);
+  const scrollToProjects = () => {
+    document
+      .getElementById('projects')
+      ?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   return (
     <section
-      className={`min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 transition-all duration-300 ease-in-out ${
-        lightMode ? 'bg-gray-900' : 'bg-gray-100'
-      }`}
+      id="home"
       aria-labelledby="hero-title"
+      className={`relative flex min-h-[86vh] items-center overflow-hidden transition-colors duration-500 ${
+        lightMode
+          ? 'bg-gray-50 text-gray-950'
+          : 'bg-gray-950 text-white'
+      }`}
     >
+      {/* =================================
+          SUBTLE BACKGROUND GRID
+      ================================== */}
       <div
-        className={`max-w-5xl w-full flex flex-col lg:flex-row items-center rounded-lg overflow-hidden transition-all duration-300 ease-in-out ${
-          lightMode ? 'text-white' : 'text-gray-900'
+        className={`pointer-events-none absolute inset-0 opacity-[0.025] ${
+          lightMode ? 'text-black' : 'text-white'
         }`}
-      >
-        {/* Text Section */}
-        <div className="flex-1 p-6 lg:p-12 text-center lg:text-left">
-          <h1
-            id="hero-title"
-            className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 tracking-tight"
-          >
-            I’m <span className="text-yellow-400">{displayText}</span>
-            <span className="ml-1 animate-pulse">|</span>
-          </h1>
-          <p className="text-lg sm:text-xl font-light mb-6 max-w-md mx-auto lg:mx-0">
-            Full-Stack Web Developer & Brand Designer
-          </p>
-          <button
-            onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
-            className={`px-6 py-3 rounded-md text-sm font-semibold transition-all duration-300 ease-in-out ${
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
+          backgroundSize: '80px 80px',
+        }}
+      />
+
+      {/* Subtle radial glow */}
+      <div
+        className={`pointer-events-none absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl transition-opacity duration-500 ${
+          lightMode
+            ? 'bg-yellow-400/[0.035]'
+            : 'bg-yellow-400/[0.025]'
+        }`}
+      />
+
+      <div className="relative mx-auto w-full max-w-6xl px-6 py-16 sm:px-8 lg:px-10 lg:py-20">
+
+        {/* =================================
+            TOP META LINE
+        ================================== */}
+        <div className="mb-10 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="h-px w-6 bg-yellow-400" />
+
+            <span
+              className={`text-[10px] font-semibold uppercase tracking-[0.2em] transition-colors duration-500 ${
+                lightMode
+                  ? 'text-gray-500'
+                  : 'text-gray-400'
+              }`}
+            >
+              Software Engineer
+            </span>
+          </div>
+
+          <span
+            className={`hidden text-[10px] font-medium tracking-wide transition-colors duration-500 sm:block ${
               lightMode
-                ? 'border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-gray-900'
-                : 'border-gray-900 text-yellow-400 bg-gray-900 hover:bg-yellow-400 hover:text-gray-900'
-            } border focus:outline-none focus:ring-2 focus:ring-yellow-400`}
-            aria-label="Contact Shina Adedokun"
+                ? 'text-gray-400'
+                : 'text-gray-500'
+            }`}
           >
-            Contact Me
-          </button>
+            Lagos · Nigeria
+          </span>
         </div>
 
-        {/* Image Section */}
-        <div className="relative flex-1 p-6">
-          <Image
-            src={picB}
-            alt="Shina Adedokun - Profile"
-            width={500}
-            height={500}
-            className="w-full h-auto rounded-md object-cover"
-            priority
-          />
+        {/* =================================
+            MAIN HERO GRID
+        ================================== */}
+        <div className="grid items-center gap-10 lg:grid-cols-[1.12fr_0.88fr] lg:gap-16">
 
-          {/* Social Icons */}
-          <div className="absolute top-1/2 right-6 transform -translate-y-1/2 space-y-4">
+          {/* =================================
+              CONTENT
+          ================================== */}
+          <div className="max-w-xl">
+
+            {/* Eyebrow */}
+            <div
+              className={`mb-5 flex items-center gap-2 text-[9px] font-medium uppercase tracking-[0.18em] transition-colors duration-500 ${
+                lightMode
+                  ? 'text-gray-400'
+                  : 'text-gray-600'
+              }`}
+            >
+              <span className="h-1 w-1 rounded-full bg-yellow-400" />
+              Product · Engineering · Design
+            </div>
+
+            {/* Heading */}
+            <h1
+              id="hero-title"
+              className={`text-[2.7rem] font-semibold leading-[1.02] tracking-[-0.045em] transition-colors duration-500 sm:text-5xl lg:text-[4.15rem] ${
+                lightMode
+                  ? 'text-gray-950'
+                  : 'text-white'
+              }`}
+            >
+              Adeshina
+              <br />
+
+              <span className="text-yellow-400">
+                Adedokun.
+              </span>
+            </h1>
+
+            {/* Main statement */}
+            <p
+              className={`mt-6 max-w-lg text-[15px] leading-7 transition-colors duration-500 sm:text-base ${
+                lightMode
+                  ? 'text-gray-700'
+                  : 'text-gray-300'
+              }`}
+            >
+              I design and build digital products, from the
+              interface to the infrastructure.
+            </p>
+
+            {/* Supporting statement */}
+            <p
+              className={`mt-2 max-w-md text-[13px] leading-6 transition-colors duration-500 ${
+                lightMode
+                  ? 'text-gray-500'
+                  : 'text-gray-500'
+              }`}
+            >
+              Full-stack engineering, product development and
+              thoughtful digital experiences.
+            </p>
+
+            {/* =================================
+                ACTIONS
+            ================================== */}
+            <div className="mt-7 flex items-center gap-5">
+
+              <button
+                onClick={scrollToProjects}
+                className="group inline-flex items-center gap-2 rounded-full bg-yellow-400 px-5 py-2.5 text-[13px] font-semibold text-gray-950 transition-all duration-200 hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2"
+              >
+                View my work
+
+                <FontAwesomeIcon
+                  icon={faArrowRight}
+                  className="text-[10px] transition-transform duration-200 group-hover:translate-x-1"
+                />
+              </button>
+
+              <button
+                onClick={scrollToContact}
+                className={`group inline-flex items-center gap-2 text-[13px] font-semibold transition-colors duration-300 ${
+                  lightMode
+                    ? 'text-gray-700 hover:text-yellow-500'
+                    : 'text-gray-300 hover:text-yellow-400'
+                }`}
+              >
+                Let's talk
+
+                <span className="h-px w-4 bg-current transition-all duration-200 group-hover:w-7" />
+              </button>
+
+            </div>
+
+            {/* =================================
+                TECHNOLOGIES
+            ================================== */}
+            <div
+              className={`mt-10 flex flex-wrap items-center gap-3 text-[10px] transition-colors duration-500 ${
+                lightMode
+                  ? 'text-gray-400'
+                  : 'text-gray-500'
+              }`}
+            >
+              <FontAwesomeIcon
+                icon={faCode}
+                className="text-yellow-400"
+              />
+
+              <span>React</span>
+              <span>·</span>
+              <span>Next.js</span>
+              <span>·</span>
+              <span>Node.js</span>
+              <span>·</span>
+              <span>TypeScript</span>
+            </div>
+          </div>
+
+          {/* =================================
+              IMAGE
+          ================================== */}
+          <div className="relative mx-auto w-full max-w-[320px] lg:ml-auto">
+
+            {/* Availability */}
+            <div
+              className={`absolute -top-5 right-0 z-20 flex items-center gap-2 text-[9px] font-medium uppercase tracking-[0.12em] transition-colors duration-500 ${
+                lightMode
+                  ? 'text-gray-500'
+                  : 'text-gray-400'
+              }`}
+            >
+              <span className="relative flex h-2 w-2 items-center justify-center">
+                <span className="absolute h-full w-full animate-ping rounded-full bg-green-400 opacity-30" />
+
+                <span className="availability-blink relative h-1.5 w-1.5 rounded-full bg-green-400" />
+              </span>
+
+              Available for work
+            </div>
+
+            {/* Portrait */}
+            <div
+              className={`relative aspect-[4/5] overflow-hidden rounded-lg transition-all duration-500 ${
+                lightMode
+                  ? 'ring-1 ring-black/10'
+                  : 'ring-1 ring-white/10'
+              }`}
+            >
+              <Image
+                src={picB}
+                alt="Adeshina Adedokun"
+                fill
+                priority
+                sizes="(max-width: 1024px) 75vw, 320px"
+                className="object-cover object-center transition-transform duration-700 hover:scale-[1.01]"
+              />
+
+              {/* Image gradient */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+
+              {/* Image edge detail */}
+              <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/10" />
+            </div>
+
+            {/* Image caption */}
+            <div className="mt-3 flex items-center justify-between">
+              <span
+                className={`text-[9px] uppercase tracking-[0.16em] transition-colors duration-500 ${
+                  lightMode
+                    ? 'text-gray-400'
+                    : 'text-gray-500'
+                }`}
+              >
+                Product · Engineering
+              </span>
+
+              <span
+                className={`text-[9px] transition-colors duration-500 ${
+                  lightMode
+                    ? 'text-gray-400'
+                    : 'text-gray-600'
+                }`}
+              >
+                01
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* =================================
+            BOTTOM BAR
+        ================================== */}
+        <div
+          className={`mt-12 flex items-center justify-between border-t pt-4 transition-colors duration-500 ${
+            lightMode
+              ? 'border-black/10'
+              : 'border-white/10'
+          }`}
+        >
+
+          {/* Social links */}
+          <div className="flex items-center gap-5">
+
+            {/* X */}
             <a
               href="https://x.com/Aaytriple"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-700 hover:bg-yellow-400 hover:text-gray-900 transition-all duration-300"
-              aria-label="Visit Shina Adedokun's Twitter profile"
+              aria-label="Visit Adeshina Adedokun on X"
+              className={`text-xs transition-colors duration-300 ${
+                lightMode
+                  ? 'text-gray-400 hover:text-yellow-500'
+                  : 'text-gray-500 hover:text-yellow-400'
+              }`}
             >
-              <FontAwesomeIcon
-                icon={faTwitter}
-                className={`w-5 h-5 ${lightMode ? 'text-white' : 'text-gray-300'}`}
-              />
+              <FontAwesomeIcon icon={faTwitter} />
             </a>
+
+            {/* LinkedIn */}
             <a
-              href="https://www.linkedin.com/in/tripleaay?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app"
+              href="https://www.linkedin.com/in/tripleaay"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-700 hover:bg-yellow-400 hover:text-gray-900 transition-all duration-300"
-              aria-label="Visit Shina Adedokun's LinkedIn profile"
+              aria-label="Visit Adeshina Adedokun on LinkedIn"
+              className={`text-xs transition-colors duration-300 ${
+                lightMode
+                  ? 'text-gray-400 hover:text-yellow-500'
+                  : 'text-gray-500 hover:text-yellow-400'
+              }`}
             >
-              <FontAwesomeIcon
-                icon={faLinkedinIn}
-                className={`w-5 h-5 ${lightMode ? 'text-white' : 'text-gray-300'}`}
-              />
+              <FontAwesomeIcon icon={faLinkedinIn} />
             </a>
+
+            {/* WhatsApp */}
             <a
               href="https://wa.me/2349167740076"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-700 hover:bg-yellow-400 hover:text-gray-900 transition-all duration-300"
-              aria-label="Contact Shina Adedokun via WhatsApp"
+              aria-label="Contact Adeshina Adedokun on WhatsApp"
+              className={`text-xs transition-colors duration-300 ${
+                lightMode
+                  ? 'text-gray-400 hover:text-yellow-500'
+                  : 'text-gray-500 hover:text-yellow-400'
+              }`}
             >
-              <FontAwesomeIcon
-                icon={faWhatsapp}
-                className={`w-5 h-5 ${lightMode ? 'text-white' : 'text-gray-300'}`}
-              />
+              <FontAwesomeIcon icon={faWhatsapp} />
             </a>
+
+            {/* Phone */}
             <a
               href="tel:+2349167740076"
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-700 hover:bg-yellow-400 hover:text-gray-900 transition-all duration-300"
-              aria-label="Call Shina Adedokun"
+              aria-label="Call Adeshina Adedokun"
+              className={`text-xs transition-colors duration-300 ${
+                lightMode
+                  ? 'text-gray-400 hover:text-yellow-500'
+                  : 'text-gray-500 hover:text-yellow-400'
+              }`}
             >
-              <FontAwesomeIcon
-                icon={faPhone}
-                className={`w-5 h-5 ${lightMode ? 'text-white' : 'text-gray-300'}`}
-              />
+              <FontAwesomeIcon icon={faPhone} />
             </a>
+
           </div>
+
+          {/* Explore */}
+          <button
+            onClick={scrollToProjects}
+            className={`hidden items-center gap-2 text-[9px] font-medium uppercase tracking-[0.16em] transition-colors duration-300 sm:flex ${
+              lightMode
+                ? 'text-gray-400 hover:text-yellow-500'
+                : 'text-gray-500 hover:text-yellow-400'
+            }`}
+          >
+            Explore
+
+            <FontAwesomeIcon
+              icon={faArrowRight}
+              className="text-[8px] transition-transform duration-200 group-hover:translate-x-1"
+            />
+          </button>
+
         </div>
       </div>
     </section>
@@ -143,3 +386,4 @@ const Hero = () => {
 };
 
 export default Hero;
+

@@ -12,17 +12,17 @@ const About = () => {
     {
       number: '01',
       title: 'Engineering',
-      text: 'Scalable web products, thoughtful architecture, and interfaces that feel effortless to use.',
+      text: 'Modern web applications built for performance, scale, and real-world use.',
     },
     {
       number: '02',
       title: 'Product',
-      text: 'Turning ideas into practical digital experiences with clarity, speed, and purpose.',
+      text: 'Clear digital experiences that turn ideas into useful products.',
     },
     {
       number: '03',
       title: 'Design',
-      text: 'Brand systems and interfaces shaped by years of visual design experience.',
+      text: 'A designer’s eye applied to interfaces, brands, and product details.',
     },
   ];
 
@@ -35,83 +35,83 @@ const About = () => {
           : 'bg-[#0b0b0d] text-white'
       }`}
     >
-      {/* Very subtle atmosphere */}
+      {/* Subtle ambient glow */}
       <div
-        className={`pointer-events-none absolute left-1/2 top-0 h-[500px] w-[700px] -translate-x-1/2 rounded-full blur-3xl ${
+        className={`pointer-events-none absolute left-1/2 top-0 h-[420px] w-[650px] -translate-x-1/2 rounded-full blur-3xl ${
           lightMode
             ? 'bg-yellow-400/[0.035]'
             : 'bg-yellow-400/[0.025]'
         }`}
       />
 
-      <div className="relative mx-auto max-w-6xl px-6 py-28 sm:px-8 md:py-36 lg:px-10">
-        
-        {/* =========================
-            SECTION INTRO
-        ========================== */}
+      <div className="relative mx-auto max-w-6xl px-6 py-24 sm:px-8 md:py-32 lg:px-10">
+
+        {/* =====================================
+            HEADER
+        ====================================== */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-100px' }}
-          transition={{ duration: 0.7, ease: 'easeOut' }}
-          className="max-w-3xl"
+          transition={{ duration: 0.65, ease: 'easeOut' }}
+          className="max-w-4xl"
         >
+          {/* Label */}
           <div className="mb-6 flex items-center gap-3">
             <span className="h-px w-8 bg-yellow-400" />
 
             <span
               className={`text-[10px] font-semibold uppercase tracking-[0.25em] ${
-                lightMode
-                  ? 'text-gray-500'
-                  : 'text-gray-500'
+                lightMode ? 'text-gray-400' : 'text-gray-500'
               }`}
             >
-              About
+              About me
             </span>
           </div>
 
+          {/* Main heading */}
           <h2
-            className={`max-w-3xl text-4xl font-semibold leading-[1.05] tracking-[-0.04em] sm:text-5xl md:text-6xl ${
+            className={`max-w-4xl text-4xl font-semibold leading-[1.02] tracking-[-0.045em] sm:text-5xl md:text-6xl lg:text-[4.2rem] ${
               lightMode ? 'text-gray-950' : 'text-white'
             }`}
           >
-            I build digital products
-            <span className="text-yellow-400"> with purpose.</span>
+            Engineer by craft.
+            <br />
+
+            <span className="text-yellow-400">
+              Designer by instinct.
+            </span>
           </h2>
 
+          {/* Short positioning statement */}
           <p
             className={`mt-7 max-w-2xl text-base leading-8 sm:text-lg ${
-              lightMode
-                ? 'text-gray-500'
-                : 'text-gray-400'
+              lightMode ? 'text-gray-500' : 'text-gray-400'
             }`}
           >
-            I&apos;m Adedokun Adeshina — a software engineer and brand
-            designer with a journey that started in visual design and
-            evolved into building digital products.
+            I build digital products where technology, design, and
+            business thinking meet.
           </p>
         </motion.div>
 
-        {/* =========================
-            MAIN STORY
-        ========================== */}
+        {/* =====================================
+            STORY + POSITIONING
+        ====================================== */}
         <motion.div
-          initial={{ opacity: 0, y: 25 }}
+          initial={{ opacity: 0, y: 22 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 0.7, delay: 0.1 }}
-          className="mt-20 grid gap-12 lg:grid-cols-[1fr_0.7fr]"
+          transition={{ duration: 0.7, delay: 0.08 }}
+          className="mt-20 grid gap-14 lg:grid-cols-[1.15fr_0.65fr] lg:gap-20"
         >
           {/* Story */}
           <div
-            className={`max-w-2xl space-y-7 text-[15px] leading-8 ${
-              lightMode
-                ? 'text-gray-600'
-                : 'text-gray-400'
+            className={`max-w-2xl text-[15px] leading-8 ${
+              lightMode ? 'text-gray-600' : 'text-gray-400'
             }`}
           >
             <p>
-              My journey began in{' '}
+              My journey started in{' '}
               <span
                 className={`font-medium ${
                   lightMode ? 'text-gray-950' : 'text-white'
@@ -119,14 +119,14 @@ const About = () => {
               >
                 2013
               </span>{' '}
-              as a brand designer at Ginimax Technology. That foundation
-              taught me something I still carry into engineering today:
-              technology is more powerful when people can understand,
-              trust, and enjoy the experience around it.
+              as a brand designer at Ginimax Technology. That experience
+              shaped how I think about software today: great technology
+              should not only work well — it should also feel clear,
+              intentional, and human.
             </p>
 
-            <p>
-              I went on to earn an{' '}
+            <p className="mt-7">
+              With an{' '}
               <span
                 className={`font-medium ${
                   lightMode ? 'text-gray-950' : 'text-white'
@@ -134,44 +134,22 @@ const About = () => {
               >
                 HND in Computer Science
               </span>{' '}
-              from The Polytechnic, Ibadan, and continued my studies in
-              Computer Science at the National Open University.
+              and continued studies in Computer Science, I moved deeper
+              into software engineering and product development.
             </p>
 
-            <p>
-              Today, I work across the space between{' '}
+            <p className="mt-7">
+              Today, I work across{' '}
               <span className="font-medium text-yellow-400">
-                engineering, design, and product thinking
+                engineering, design, and product
               </span>
-              . I build with modern web technologies, shape visual
-              identities, and think deeply about how products should work
-              for the people using them.
-            </p>
-
-            <p>
-              Beyond client and product work, I lead{' '}
-              <span
-                className={`font-medium ${
-                  lightMode ? 'text-gray-950' : 'text-white'
-                }`}
-              >
-                Fynaro Tech
-              </span>{' '}
-              and{' '}
-              <span
-                className={`font-medium ${
-                  lightMode ? 'text-gray-950' : 'text-white'
-                }`}
-              >
-                dev2done
-              </span>
-              , while sharing ideas around technology, entrepreneurship,
-              branding, and life through writing.
+              — building web applications, shaping digital experiences,
+              and helping ideas become products people can actually use.
             </p>
           </div>
 
-          {/* Positioning */}
-          <div className="lg:pt-2">
+          {/* Positioning card */}
+          <div>
             <div
               className={`border-l pl-6 ${
                 lightMode
@@ -179,15 +157,13 @@ const About = () => {
                   : 'border-white/[0.09]'
               }`}
             >
-              <p
+              <span
                 className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${
-                  lightMode
-                    ? 'text-gray-400'
-                    : 'text-gray-600'
+                  lightMode ? 'text-gray-400' : 'text-gray-600'
                 }`}
               >
-                What I bring
-              </p>
+                My approach
+              </span>
 
               <p
                 className={`mt-5 text-xl font-medium leading-8 tracking-tight ${
@@ -196,22 +172,21 @@ const About = () => {
                     : 'text-gray-200'
                 }`}
               >
-                Technical depth with a designer&apos;s eye and a
-                product-minded approach.
+                Build with intention. Design with clarity. Ship what
+                matters.
               </p>
 
-              <div className="mt-8 space-y-4">
+              <div className="mt-7 space-y-3">
                 {[
-                  'Web application development',
-                  'Product & interface thinking',
-                  'Brand systems & visual design',
-                  'Technical leadership & collaboration',
+                  'Full-stack development',
+                  'Product & interface design',
+                  'Brand & visual systems',
                 ].map((item) => (
                   <div
                     key={item}
                     className="flex items-center gap-3"
                   >
-                    <span className="h-1.5 w-1.5 rounded-full bg-yellow-400" />
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-yellow-400" />
 
                     <span
                       className={`text-sm ${
@@ -229,10 +204,10 @@ const About = () => {
           </div>
         </motion.div>
 
-        {/* =========================
+        {/* =====================================
             CAPABILITIES
-        ========================== */}
-        <div className="mt-28">
+        ====================================== */}
+        <div className="mt-24">
           <div
             className={`mb-8 h-px w-full ${
               lightMode
@@ -241,7 +216,7 @@ const About = () => {
             }`}
           />
 
-          <div className="grid gap-px sm:grid-cols-3">
+          <div className="grid sm:grid-cols-3">
             {highlights.map((item, index) => (
               <motion.div
                 key={item.number}
@@ -252,7 +227,7 @@ const About = () => {
                   duration: 0.5,
                   delay: index * 0.08,
                 }}
-                className={`py-7 sm:px-6 ${
+                className={`py-6 sm:px-6 sm:py-7 ${
                   index !== 0
                     ? lightMode
                       ? 'border-t border-black/[0.06] sm:border-l sm:border-t-0'
@@ -260,7 +235,7 @@ const About = () => {
                     : ''
                 }`}
               >
-                <div className="flex items-start justify-between">
+                <div className="flex items-center justify-between">
                   <span
                     className={`text-[10px] font-medium tracking-[0.18em] ${
                       lightMode
@@ -275,7 +250,7 @@ const About = () => {
                 </div>
 
                 <h3
-                  className={`mt-6 text-lg font-semibold ${
+                  className={`mt-5 text-lg font-semibold ${
                     lightMode
                       ? 'text-gray-950'
                       : 'text-white'
@@ -285,7 +260,7 @@ const About = () => {
                 </h3>
 
                 <p
-                  className={`mt-3 max-w-xs text-sm leading-6 ${
+                  className={`mt-2 max-w-xs text-sm leading-6 ${
                     lightMode
                       ? 'text-gray-500'
                       : 'text-gray-500'
@@ -298,40 +273,41 @@ const About = () => {
           </div>
         </div>
 
-        {/* =========================
-            CLOSING STATEMENT
-        ========================== */}
+        {/* =====================================
+            SMALL FOOTNOTE
+        ====================================== */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          className="mt-28 max-w-3xl"
+          transition={{ duration: 0.7 }}
+          className={`mt-20 border-t pt-6 ${
+            lightMode
+              ? 'border-black/[0.06]'
+              : 'border-white/[0.07]'
+          }`}
         >
-          <p
-            className={`text-2xl font-medium leading-9 tracking-tight sm:text-3xl sm:leading-10 ${
-              lightMode
-                ? 'text-gray-900'
-                : 'text-gray-200'
-            }`}
-          >
-            I believe the best work happens when{' '}
-            <span className="text-yellow-400">
-              creativity, technology, and strategy
-            </span>{' '}
-            move in the same direction.
-          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p
+              className={`text-[10px] uppercase tracking-[0.18em] ${
+                lightMode
+                  ? 'text-gray-400'
+                  : 'text-gray-600'
+              }`}
+            >
+              Engineering · Design · Product
+            </p>
 
-          <p
-            className={`mt-6 text-sm leading-7 ${
-              lightMode
-                ? 'text-gray-400'
-                : 'text-gray-600'
-            }`}
-          >
-            Build something useful. Make it beautiful. Give it a reason
-            to exist.
-          </p>
+            <p
+              className={`text-[10px] uppercase tracking-[0.18em] ${
+                lightMode
+                  ? 'text-gray-400'
+                  : 'text-gray-600'
+              }`}
+            >
+              Lagos · Nigeria
+            </p>
+          </div>
         </motion.div>
       </div>
     </section>
@@ -339,4 +315,3 @@ const About = () => {
 };
 
 export default About;
-

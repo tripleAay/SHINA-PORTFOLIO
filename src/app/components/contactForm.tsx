@@ -1,14 +1,9 @@
-
 'use client';
 
 import React, { useContext, useState } from 'react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  FiArrowUpRight,
-  FiCheck,
-  FiMail,
-} from 'react-icons/fi';
+import { FiArrowUpRight, FiCheck } from 'react-icons/fi';
 
 interface FormData {
   name: string;
@@ -62,297 +57,230 @@ const ContactForm: React.FC = () => {
       aria-labelledby="contact-title"
       className={`relative overflow-hidden transition-colors duration-500 ${
         lightMode
-          ? 'bg-gray-950 text-white'
-          : 'bg-gray-50 text-gray-950'
+          ? 'bg-white text-gray-950'
+          : 'bg-[#0b0b0d] text-white'
       }`}
     >
-      {/* Extremely subtle background detail */}
-      <div
-        className={`pointer-events-none absolute inset-0 opacity-[0.018] ${
-          lightMode ? 'text-white' : 'text-black'
-        }`}
-        style={{
-          backgroundImage:
-            'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
-          backgroundSize: '90px 90px',
-        }}
-      />
-
-      <div className="relative mx-auto max-w-6xl px-6 py-24 sm:px-8 lg:px-10 lg:py-32">
-
-        {/* Small section marker */}
-        <div className="mb-14 flex items-center gap-3">
-          <span className="h-px w-8 bg-yellow-400" />
+      <div className="mx-auto max-w-5xl px-6 py-28 sm:px-8 md:py-36 lg:px-10 lg:py-44">
+        {/* Section label */}
+        <div className="mb-16 flex items-center gap-3">
+          <span className="h-px w-7 bg-yellow-400" />
 
           <span
             className={`text-[10px] font-semibold uppercase tracking-[0.24em] ${
-              lightMode ? 'text-gray-500' : 'text-gray-400'
+              lightMode ? 'text-gray-400' : 'text-gray-600'
             }`}
           >
             Contact
           </span>
         </div>
 
-        <div className="grid gap-16 lg:grid-cols-[0.8fr_1.2fr] lg:gap-24">
+        {/* Intro */}
+        <div className="max-w-2xl">
+          <motion.h2
+            id="contact-title"
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="text-4xl font-semibold leading-[1.05] tracking-[-0.045em] sm:text-5xl md:text-6xl"
+          >
+            Have something
+            <br />
+            <span className="text-yellow-400">worth building?</span>
+          </motion.h2>
 
-          {/* =========================
-              LEFT — INTRO
-          ========================== */}
-          <div className="max-w-md">
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{
+              duration: 0.6,
+              delay: 0.08,
+              ease: 'easeOut',
+            }}
+            className={`mt-7 max-w-lg text-sm leading-7 sm:text-base ${
+              lightMode ? 'text-gray-500' : 'text-gray-500'
+            }`}
+          >
+            Tell me what you&apos;re working on. Let&apos;s see where it
+            goes.
+          </motion.p>
+        </div>
 
-            <h2
-              id="contact-title"
-              className="text-4xl font-semibold leading-[1.05] tracking-[-0.04em] sm:text-5xl"
-            >
-              Let's build something
-              <span className="text-yellow-400"> meaningful.</span>
-            </h2>
-
-            <p
-              className={`mt-6 max-w-sm text-sm leading-7 sm:text-base ${
-                lightMode
-                  ? 'text-gray-400'
-                  : 'text-gray-600'
-              }`}
-            >
-              Have a product idea, a website to build, or a problem
-              worth solving? Tell me a little about it and I'll get
-              back to you.
-            </p>
-
-            {/* Direct email */}
-            <a
-              href="mailto:hello@adeshinaadedokun.com"
-              className={`group mt-8 inline-flex items-center gap-3 text-sm font-medium transition-colors ${
-                lightMode
-                  ? 'text-gray-300 hover:text-yellow-400'
-                  : 'text-gray-700 hover:text-yellow-500'
-              }`}
-            >
-              <FiMail className="text-yellow-400" />
-
-              <span>hello@adeshinaadedokun.com</span>
-
-              <FiArrowUpRight
-                className="text-xs transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-              />
-            </a>
-
-            {/* Availability */}
-            <div
-              className={`mt-10 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] ${
-                lightMode
-                  ? 'text-gray-600'
-                  : 'text-gray-400'
-              }`}
-            >
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inset-0 animate-ping rounded-full bg-green-400 opacity-60" />
-                <span className="relative h-2 w-2 rounded-full bg-green-400" />
-              </span>
-
-              Available for selected projects
-            </div>
-          </div>
-
-          {/* =========================
-              RIGHT — FORM
-          ========================== */}
-          <div className="w-full max-w-2xl lg:ml-auto">
-
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-8"
-            >
-
-              {/* Name + Email */}
-              <div className="grid gap-8 sm:grid-cols-2">
-
-                <div className="group">
-                  <label
-                    htmlFor="name"
-                    className={`mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] ${
-                      lightMode
-                        ? 'text-gray-500'
-                        : 'text-gray-400'
-                    }`}
-                  >
-                    Name
-                  </label>
-
-                  <input
-                    id="name"
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="Your name"
-                    required
-                    className={`w-full border-0 border-b bg-transparent px-0 py-3 text-sm outline-none transition-colors placeholder:text-gray-500 focus:ring-0 ${
-                      lightMode
-                        ? 'border-white/10 text-white focus:border-yellow-400'
-                        : 'border-gray-900/10 text-gray-900 focus:border-yellow-500'
-                    }`}
-                  />
-                </div>
-
-                <div className="group">
-                  <label
-                    htmlFor="email"
-                    className={`mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] ${
-                      lightMode
-                        ? 'text-gray-500'
-                        : 'text-gray-400'
-                    }`}
-                  >
-                    Email
-                  </label>
-
-                  <input
-                    id="email"
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="you@example.com"
-                    required
-                    className={`w-full border-0 border-b bg-transparent px-0 py-3 text-sm outline-none transition-colors placeholder:text-gray-500 focus:ring-0 ${
-                      lightMode
-                        ? 'border-white/10 text-white focus:border-yellow-400'
-                        : 'border-gray-900/10 text-gray-900 focus:border-yellow-500'
-                    }`}
-                  />
-                </div>
-
-              </div>
-
-              {/* Message */}
+        {/* Form */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-60px' }}
+          transition={{
+            duration: 0.7,
+            delay: 0.15,
+            ease: 'easeOut',
+          }}
+          className="mt-20 max-w-3xl"
+        >
+          <form onSubmit={handleSubmit} className="space-y-10">
+            {/* Name + Email */}
+            <div className="grid gap-10 sm:grid-cols-2">
               <div>
                 <label
-                  htmlFor="message"
-                  className={`mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] ${
-                    lightMode
-                      ? 'text-gray-500'
-                      : 'text-gray-400'
+                  htmlFor="name"
+                  className={`mb-3 block text-[10px] font-semibold uppercase tracking-[0.18em] ${
+                    lightMode ? 'text-gray-400' : 'text-gray-600'
                   }`}
                 >
-                  Project details
+                  Name
                 </label>
 
-                <textarea
-                  id="message"
-                  name="message"
-                  value={formData.message}
+                <input
+                  id="name"
+                  type="text"
+                  name="name"
+                  value={formData.name}
                   onChange={handleChange}
-                  placeholder="Tell me about what you're building..."
-                  rows={5}
+                  placeholder="Your name"
                   required
-                  className={`w-full resize-none border-0 border-b bg-transparent px-0 py-3 text-sm leading-7 outline-none transition-colors placeholder:text-gray-500 focus:ring-0 ${
+                  autoComplete="name"
+                  className={`w-full border-0 border-b bg-transparent px-0 py-3 text-sm outline-none transition-colors placeholder:text-gray-500 focus:ring-0 ${
                     lightMode
-                      ? 'border-white/10 text-white focus:border-yellow-400'
-                      : 'border-gray-900/10 text-gray-900 focus:border-yellow-500'
+                      ? 'border-gray-900/10 text-gray-950 focus:border-yellow-500'
+                      : 'border-white/10 text-white focus:border-yellow-400'
                   }`}
                 />
               </div>
 
-              {/* Submit */}
-              <div className="flex items-center justify-between pt-2">
-
-                <p
-                  className={`hidden text-[10px] leading-5 sm:block ${
-                    lightMode
-                      ? 'text-gray-600'
-                      : 'text-gray-400'
+              <div>
+                <label
+                  htmlFor="email"
+                  className={`mb-3 block text-[10px] font-semibold uppercase tracking-[0.18em] ${
+                    lightMode ? 'text-gray-400' : 'text-gray-600'
                   }`}
                 >
-                  Usually responds within 1–2 business days.
-                </p>
+                  Email
+                </label>
 
-                <motion.button
-                  type="submit"
-                  whileHover={{ y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="group inline-flex items-center gap-3 rounded-full bg-yellow-400 px-6 py-3 text-sm font-semibold text-gray-950 transition-all duration-200 hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2"
-                >
-                  Send message
-
-                  <FiArrowUpRight className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </motion.button>
-
+                <input
+                  id="email"
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="you@example.com"
+                  required
+                  autoComplete="email"
+                  className={`w-full border-0 border-b bg-transparent px-0 py-3 text-sm outline-none transition-colors placeholder:text-gray-500 focus:ring-0 ${
+                    lightMode
+                      ? 'border-gray-900/10 text-gray-950 focus:border-yellow-500'
+                      : 'border-white/10 text-white focus:border-yellow-400'
+                  }`}
+                />
               </div>
-            </form>
+            </div>
 
-            {/* Success state */}
-            <AnimatePresence>
-              {isSubmitted && (
-                <motion.div
-                  initial={{
-                    opacity: 0,
-                    y: 8,
-                  }}
-                  animate={{
-                    opacity: 1,
-                    y: 0,
-                  }}
-                  exit={{
-                    opacity: 0,
-                    y: -8,
-                  }}
-                  className={`mt-8 flex items-center gap-3 text-sm ${
-                    lightMode
-                      ? 'text-green-400'
-                      : 'text-green-600'
-                  }`}
-                >
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-400/10">
-                    <FiCheck />
-                  </span>
+            {/* Message */}
+            <div>
+              <label
+                htmlFor="message"
+                className={`mb-3 block text-[10px] font-semibold uppercase tracking-[0.18em] ${
+                  lightMode ? 'text-gray-400' : 'text-gray-600'
+                }`}
+              >
+                Message
+              </label>
 
-                  Thanks — your message has been received.
-                </motion.div>
-              )}
-            </AnimatePresence>
+              <textarea
+                id="message"
+                name="message"
+                value={formData.message}
+                onChange={handleChange}
+                placeholder="What are you building?"
+                rows={4}
+                required
+                className={`w-full resize-none border-0 border-b bg-transparent px-0 py-3 text-sm leading-7 outline-none transition-colors placeholder:text-gray-500 focus:ring-0 ${
+                  lightMode
+                    ? 'border-gray-900/10 text-gray-950 focus:border-yellow-500'
+                    : 'border-white/10 text-white focus:border-yellow-400'
+                }`}
+              />
+            </div>
 
-          </div>
-        </div>
+            {/* Action */}
+            <div className="flex flex-col gap-5 pt-2 sm:flex-row sm:items-center sm:justify-between">
+              <div
+                className={`flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] ${
+                  lightMode ? 'text-gray-400' : 'text-gray-600'
+                }`}
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inset-0 animate-ping rounded-full bg-green-400 opacity-50" />
+                  <span className="relative h-2 w-2 rounded-full bg-green-400" />
+                </span>
 
-        {/* Bottom rule */}
+                Available for selected projects
+              </div>
+
+              <motion.button
+                type="submit"
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="group inline-flex w-fit items-center gap-3 rounded-full bg-yellow-400 px-6 py-3 text-sm font-semibold text-gray-950 transition-colors hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2"
+              >
+                Send message
+
+                <FiArrowUpRight
+                  className="transition-transform duration-200 group-hover:translate-x-1 group-hover:-translate-y-1"
+                />
+              </motion.button>
+            </div>
+          </form>
+
+          {/* Success */}
+          <AnimatePresence>
+            {isSubmitted && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="mt-8 flex items-center gap-3 text-sm text-green-400"
+              >
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-400/10">
+                  <FiCheck />
+                </span>
+
+                Message received. I&apos;ll be in touch.
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Minimal footer */}
         <div
-          className={`mt-24 border-t pt-5 ${
+          className={`mt-28 flex items-center justify-between border-t pt-5 ${
             lightMode
-              ? 'border-white/10'
-              : 'border-gray-900/10'
+              ? 'border-gray-900/10'
+              : 'border-white/[0.07]'
           }`}
         >
-          <div className="flex items-center justify-between">
+          <span
+            className={`text-[10px] uppercase tracking-[0.18em] ${
+              lightMode ? 'text-gray-400' : 'text-gray-600'
+            }`}
+          >
+            Adeshina Adedokun
+          </span>
 
-            <span
-              className={`text-[10px] uppercase tracking-[0.18em] ${
-                lightMode
-                  ? 'text-gray-600'
-                  : 'text-gray-400'
-              }`}
-            >
-              Adeshina Adedokun
-            </span>
-
-            <span
-              className={`text-[10px] ${
-                lightMode
-                  ? 'text-gray-600'
-                  : 'text-gray-400'
-              }`}
-            >
-              Lagos · Nigeria
-            </span>
-
-          </div>
+          <span
+            className={`text-[10px] ${
+              lightMode ? 'text-gray-400' : 'text-gray-600'
+            }`}
+          >
+            Lagos · Nigeria
+          </span>
         </div>
-
       </div>
     </section>
   );
 };
 
 export default ContactForm;
-

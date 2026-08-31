@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useContext } from 'react';
@@ -10,8 +11,6 @@ const SkillsSection = () => {
     {
       number: '01',
       title: 'Engineering',
-      description:
-        'Building reliable, scalable web products from the frontend to the backend.',
       skills: [
         'React',
         'Next.js',
@@ -24,11 +23,9 @@ const SkillsSection = () => {
     {
       number: '02',
       title: 'Product',
-      description:
-        'Turning product requirements into thoughtful systems and intuitive experiences.',
       skills: [
-        'Architecture',
         'APIs',
+        'Architecture',
         'Authentication',
         'Payments',
         'Responsive UI',
@@ -37,12 +34,10 @@ const SkillsSection = () => {
     {
       number: '03',
       title: 'Design',
-      description:
-        'Bringing product thinking and visual design together to create coherent brands and interfaces.',
       skills: [
         'UI/UX',
-        'Brand Design',
         'Figma',
+        'Brand Design',
         'Adobe Creative Suite',
       ],
     },
@@ -52,165 +47,88 @@ const SkillsSection = () => {
     <section
       id="skills"
       aria-labelledby="skills-title"
-      className={`relative overflow-hidden transition-colors duration-300 ${
+      className={`transition-colors duration-500 ${
         lightMode
-          ? 'bg-gray-950 text-white'
-          : 'bg-gray-50 text-gray-950'
+          ? 'bg-white text-gray-950'
+          : 'bg-[#0b0b0d] text-white'
       }`}
     >
-      {/* Extremely subtle background grid */}
-      <div
-        className={`pointer-events-none absolute inset-0 opacity-[0.018] ${
-          lightMode ? 'text-white' : 'text-black'
-        }`}
-        style={{
-          backgroundImage:
-            'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
-          backgroundSize: '80px 80px',
-        }}
-      />
+      <div className="mx-auto max-w-6xl px-6 py-24 sm:px-8 md:py-32 lg:px-10">
 
-      <div className="relative mx-auto max-w-6xl px-6 py-24 sm:px-8 lg:px-10 lg:py-32">
-
-        {/* =========================
-            SECTION INTRO
-        ========================== */}
-        <div className="max-w-2xl">
-          <div className="mb-5 flex items-center gap-3">
-            <span className="h-px w-7 bg-yellow-400" />
-
+        {/* Header */}
+        <div className="flex items-end justify-between border-b border-current/10 pb-6">
+          <div>
             <span
               className={`text-[10px] font-semibold uppercase tracking-[0.24em] ${
-                lightMode
-                  ? 'text-gray-500'
-                  : 'text-gray-400'
+                lightMode ? 'text-gray-400' : 'text-gray-600'
               }`}
             >
-              Capabilities
+              Skills
             </span>
+
+            <h2
+              id="skills-title"
+              className="mt-3 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl"
+            >
+              What I work with<span className="text-yellow-400">.</span>
+            </h2>
           </div>
 
-          <h2
-            id="skills-title"
-            className="text-3xl font-semibold tracking-[-0.035em] sm:text-4xl lg:text-5xl"
-          >
-            I build across the
-            <span className="text-yellow-400"> product.</span>
-          </h2>
-
-          <p
-            className={`mt-5 max-w-xl text-sm leading-7 sm:text-base ${
-              lightMode
-                ? 'text-gray-400'
-                : 'text-gray-500'
+          <span
+            className={`hidden text-[10px] uppercase tracking-[0.18em] sm:block ${
+              lightMode ? 'text-gray-400' : 'text-gray-600'
             }`}
           >
-            From architecture and interfaces to visual identity,
-            I bring engineering, product thinking and design into
-            one workflow.
-          </p>
+            01 — 03
+          </span>
         </div>
 
-        {/* =========================
-            CAPABILITY LIST
-        ========================== */}
-        <div className="mt-16 border-t border-current/10">
+        {/* Skills */}
+        <div>
           {skillGroups.map((group) => (
             <div
               key={group.number}
-              className={`group grid gap-8 border-b py-10 transition-colors duration-300 lg:grid-cols-[80px_0.8fr_1.2fr] lg:items-start ${
+              className={`grid gap-6 border-b py-10 md:grid-cols-[70px_180px_1fr] md:items-center ${
                 lightMode
-                  ? 'border-gray-900/10'
-                  : 'border-white/10'
+                  ? 'border-gray-900/[0.08]'
+                  : 'border-white/[0.08]'
               }`}
             >
               {/* Number */}
               <span
-                className={`text-[10px] font-medium tracking-[0.18em] ${
-                  lightMode
-                    ? 'text-gray-400'
-                    : 'text-gray-600'
+                className={`text-[10px] tracking-[0.18em] ${
+                  lightMode ? 'text-gray-400' : 'text-gray-600'
                 }`}
               >
                 {group.number}
               </span>
 
-              {/* Title + description */}
-              <div>
-                <h3
-                  className={`text-xl font-semibold tracking-[-0.02em] transition-colors duration-300 ${
-                    lightMode
-                      ? 'text-gray-950 group-hover:text-yellow-500'
-                      : 'text-white group-hover:text-yellow-400'
-                  }`}
-                >
-                  {group.title}
-                </h3>
-
-                <p
-                  className={`mt-3 max-w-sm text-sm leading-6 ${
-                    lightMode
-                      ? 'text-gray-500'
-                      : 'text-gray-500'
-                  }`}
-                >
-                  {group.description}
-                </p>
-              </div>
+              {/* Category */}
+              <h3
+                className={`text-lg font-medium tracking-tight ${
+                  lightMode ? 'text-gray-950' : 'text-gray-100'
+                }`}
+              >
+                {group.title}
+              </h3>
 
               {/* Skills */}
-              <div className="flex flex-wrap content-start gap-x-2 gap-y-2">
-                {group.skills.map((skill, index) => (
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
+                {group.skills.map((skill) => (
                   <span
                     key={skill}
-                    className={`text-sm transition-colors duration-200 ${
+                    className={`text-sm ${
                       lightMode
-                        ? 'text-gray-600'
+                        ? 'text-gray-500'
                         : 'text-gray-400'
                     }`}
                   >
                     {skill}
-                    {index < group.skills.length - 1 && (
-                      <span
-                        className={`ml-2 ${
-                          lightMode
-                            ? 'text-gray-300'
-                            : 'text-gray-700'
-                        }`}
-                      >
-                        ·
-                      </span>
-                    )}
                   </span>
                 ))}
               </div>
             </div>
           ))}
-        </div>
-
-        {/* =========================
-            BOTTOM NOTE
-        ========================== */}
-        <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p
-            className={`text-[11px] leading-5 ${
-              lightMode
-                ? 'text-gray-400'
-                : 'text-gray-600'
-            }`}
-          >
-            A focused stack for building modern digital products.
-          </p>
-
-          <span
-            className={`text-[10px] uppercase tracking-[0.18em] ${
-              lightMode
-                ? 'text-gray-400'
-                : 'text-gray-600'
-            }`}
-          >
-            Engineering · Product · Design
-          </span>
         </div>
       </div>
     </section>
@@ -218,4 +136,3 @@ const SkillsSection = () => {
 };
 
 export default SkillsSection;
-

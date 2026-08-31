@@ -185,7 +185,7 @@ const Hero = () => {
                     : 'text-gray-300 hover:text-yellow-400'
                 }`}
               >
-                Let's talk
+                Let&apos;s talk
 
                 <span className="h-px w-4 bg-current transition-all duration-200 group-hover:w-7" />
               </button>

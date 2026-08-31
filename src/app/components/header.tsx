@@ -1,7 +1,15 @@
+
 'use client';
 
 import { useContext, useEffect, useState } from 'react';
 import { ThemeContext } from '../contexts/ThemeContext';
+
+const sections = [
+  { id: 'home', label: 'Home' },
+  { id: 'about', label: 'About' },
+  { id: 'projects', label: 'Work' },
+  { id: 'contact', label: 'Contact' },
+];
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -9,13 +17,6 @@ const Header = () => {
   const [activeSection, setActiveSection] = useState('home');
 
   const { lightMode, toggleTheme } = useContext(ThemeContext);
-
-  const sections = [
-    { id: 'home', label: 'Home' },
-    { id: 'about', label: 'About' },
-    { id: 'projects', label: 'Work' },
-    { id: 'contact', label: 'Contact' },
-  ];
 
   /* =========================
      SCROLL STATE
@@ -43,7 +44,9 @@ const Header = () => {
 
     handleScroll();
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', handleScroll, {
+      passive: true,
+    });
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
@@ -96,11 +99,9 @@ const Header = () => {
   };
 
   return (
-    <header
-      className={`fixed left-0 right-0 top-0 z-50 px-4 pt-4 sm:px-6 transition-all duration-300`}
-    >
+    <header className="fixed left-0 right-0 top-0 z-50 px-4 pt-4 sm:px-6">
       <div
-        className={`mx-auto flex h-14 max-w-6xl items-center justify-between rounded-full border px-3 sm:px-4 transition-all duration-300 ${
+        className={`mx-auto flex h-14 max-w-6xl items-center justify-between rounded-full border px-3 transition-all duration-300 sm:px-4 ${
           scrolled
             ? lightMode
               ? 'border-gray-900/10 bg-white/90 shadow-sm backdrop-blur-xl'
@@ -110,15 +111,12 @@ const Header = () => {
               : 'border-white/5 bg-gray-950/65 backdrop-blur-md'
         }`}
       >
-        {/* =========================
-            LOGO
-        ========================== */}
+        {/* Logo */}
         <button
           onClick={scrollToTop}
           aria-label="Go to homepage"
           className="group flex items-center gap-2.5 rounded-full px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-yellow-400"
         >
-          {/* Monogram */}
           <span
             className={`flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold tracking-tight transition-colors ${
               lightMode
@@ -129,7 +127,6 @@ const Header = () => {
             AA
           </span>
 
-          {/* Name */}
           <span
             className={`hidden text-xs font-semibold tracking-[-0.01em] sm:block ${
               lightMode ? 'text-gray-900' : 'text-white'
@@ -139,18 +136,14 @@ const Header = () => {
           </span>
         </button>
 
-        {/* =========================
-            DESKTOP NAVIGATION
-        ========================== */}
+        {/* Desktop Navigation */}
         <nav
           className="absolute left-1/2 hidden -translate-x-1/2 md:block"
           aria-label="Main navigation"
         >
           <div
             className={`flex items-center gap-1 rounded-full p-1 ${
-              lightMode
-                ? 'bg-gray-100/80'
-                : 'bg-white/[0.04]'
+              lightMode ? 'bg-gray-100/80' : 'bg-white/[0.04]'
             }`}
           >
             {sections.slice(1).map((section) => {
@@ -172,15 +165,8 @@ const Header = () => {
                 >
                   {section.label}
 
-                  {/* Active indicator */}
                   {isActive && (
-                    <span
-                      className={`absolute bottom-1 left-1/2 h-0.5 w-1 -translate-x-1/2 rounded-full ${
-                        lightMode
-                          ? 'bg-yellow-400'
-                          : 'bg-yellow-400'
-                      }`}
-                    />
+                    <span className="absolute bottom-1 left-1/2 h-0.5 w-1 -translate-x-1/2 rounded-full bg-yellow-400" />
                   )}
                 </button>
               );
@@ -188,11 +174,8 @@ const Header = () => {
           </div>
         </nav>
 
-        {/* =========================
-            RIGHT CONTROLS
-        ========================== */}
+        {/* Right Controls */}
         <div className="flex items-center gap-1.5">
-
           {/* Availability */}
           <button
             onClick={() => scrollToSection('contact')}
@@ -204,7 +187,6 @@ const Header = () => {
           >
             <span className="relative flex h-2 w-2 items-center justify-center">
               <span className="absolute h-full w-full animate-ping rounded-full bg-green-400/40" />
-
               <span className="relative h-1.5 w-1.5 rounded-full bg-green-400" />
             </span>
 
@@ -222,7 +204,6 @@ const Header = () => {
             }`}
           >
             {lightMode ? (
-              /* Moon */
               <svg
                 className="h-4 w-4"
                 viewBox="0 0 20 20"
@@ -232,7 +213,6 @@ const Header = () => {
                 <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
               </svg>
             ) : (
-              /* Sun */
               <svg
                 className="h-4 w-4"
                 viewBox="0 0 20 20"
@@ -248,7 +228,7 @@ const Header = () => {
             )}
           </button>
 
-          {/* Mobile menu */}
+          {/* Mobile Menu */}
           <button
             onClick={() => setMobileMenuOpen((prev) => !prev)}
             aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
@@ -292,9 +272,7 @@ const Header = () => {
         </div>
       </div>
 
-      {/* =========================
-          MOBILE MENU
-      ========================== */}
+      {/* Mobile Menu */}
       <div
         className={`mx-auto mt-2 max-w-6xl overflow-hidden rounded-2xl border transition-all duration-300 md:hidden ${
           mobileMenuOpen
@@ -306,10 +284,7 @@ const Header = () => {
             : 'border-white/10 bg-gray-950/95 shadow-xl shadow-black/20 backdrop-blur-xl'
         }`}
       >
-        <nav
-          className="p-2"
-          aria-label="Mobile navigation"
-        >
+        <nav className="p-2" aria-label="Mobile navigation">
           {sections.map((section) => {
             const isActive = activeSection === section.id;
 
@@ -336,7 +311,7 @@ const Header = () => {
             );
           })}
 
-          {/* Mobile availability */}
+          {/* Mobile Availability */}
           <div
             className={`mt-1 flex items-center gap-2 border-t px-4 py-3 text-[10px] ${
               lightMode
@@ -346,7 +321,6 @@ const Header = () => {
           >
             <span className="relative flex h-2 w-2 items-center justify-center">
               <span className="absolute h-full w-full animate-ping rounded-full bg-green-400/40" />
-
               <span className="relative h-1.5 w-1.5 rounded-full bg-green-400" />
             </span>
 
@@ -359,4 +333,3 @@ const Header = () => {
 };
 
 export default Header;
-

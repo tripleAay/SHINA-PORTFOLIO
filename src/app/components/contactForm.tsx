@@ -2,8 +2,10 @@
 
 import React, { useContext, useState } from 'react';
 import { ThemeContext } from '../contexts/ThemeContext';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FiArrowUpRight, FiCheck } from 'react-icons/fi';
+import { motion } from 'framer-motion';
+import { FiArrowUpRight } from 'react-icons/fi';
+import { toast, ToastContainer } from 'react-toastify';
+import { supabase } from '../lib/supabase';
 
 interface FormData {
   name: string;
@@ -20,7 +22,7 @@ const ContactForm: React.FC = () => {
     message: '',
   });
 
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -33,22 +35,84 @@ const ContactForm: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
 
-    console.log('Form Submitted:', formData);
+    // Prevent accidental double submission
+    if (isSubmitting) return;
 
-    setIsSubmitted(true);
+    setIsSubmitting(true);
 
-    setFormData({
-      name: '',
-      email: '',
-      message: '',
-    });
+    try {
+      const { error: supabaseError } = await supabase
+        .from('messages')
+        .insert([
+          {
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            message: formData.message.trim(),
+          },
+        ]);
 
-    setTimeout(() => {
-      setIsSubmitted(false);
-    }, 5000);
+      if (supabaseError) {
+        console.error('Supabase error:', supabaseError);
+
+        toast.error(
+          'Unable to send your message. Please try again.',
+          {
+            position: 'top-right',
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            theme: lightMode ? 'light' : 'dark',
+          }
+        );
+
+        return;
+      }
+
+      // Success
+      toast.success(
+        "Message received. I'll be in touch.",
+        {
+          position: 'top-right',
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          theme: lightMode ? 'light' : 'dark',
+        }
+      );
+
+      // Clear form
+      setFormData({
+        name: '',
+        email: '',
+        message: '',
+      });
+    } catch (error) {
+      console.error('Contact form error:', error);
+
+      toast.error(
+        'Something went wrong. Please try again.',
+        {
+          position: 'top-right',
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          theme: lightMode ? 'light' : 'dark',
+        }
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -61,6 +125,19 @@ const ContactForm: React.FC = () => {
           : 'bg-[#0b0b0d] text-white'
       }`}
     >
+      {/* =================================
+          TOAST NOTIFICATIONS
+      ================================== */}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        draggable
+        theme={lightMode ? 'light' : 'dark'}
+      />
+
       {/* =================================
           SUBTLE BACKGROUND GRID
       ================================== */}
@@ -113,8 +190,14 @@ const ContactForm: React.FC = () => {
             id="contact-title"
             initial={{ opacity: 0, y: 18 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
+            viewport={{
+              once: true,
+              margin: '-80px',
+            }}
+            transition={{
+              duration: 0.6,
+              ease: 'easeOut',
+            }}
             className={`text-4xl font-semibold leading-[1.05] tracking-[-0.045em] transition-colors duration-500 sm:text-5xl md:text-6xl ${
               lightMode
                 ? 'text-gray-950'
@@ -131,7 +214,10 @@ const ContactForm: React.FC = () => {
           <motion.p
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-80px' }}
+            viewport={{
+              once: true,
+              margin: '-80px',
+            }}
             transition={{
               duration: 0.6,
               delay: 0.08,
@@ -154,7 +240,10 @@ const ContactForm: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-60px' }}
+          viewport={{
+            once: true,
+            margin: '-60px',
+          }}
           transition={{
             duration: 0.7,
             delay: 0.15,
@@ -162,9 +251,14 @@ const ContactForm: React.FC = () => {
           }}
           className="mt-20 max-w-3xl"
         >
-          <form onSubmit={handleSubmit} className="space-y-10">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-10"
+          >
 
-            {/* Name + Email */}
+            {/* =================================
+                NAME + EMAIL
+            ================================== */}
             <div className="grid gap-10 sm:grid-cols-2">
 
               {/* Name */}
@@ -189,7 +283,8 @@ const ContactForm: React.FC = () => {
                   placeholder="Your name"
                   required
                   autoComplete="name"
-                  className={`w-full border-0 border-b bg-transparent px-0 py-3 text-sm outline-none transition-colors placeholder:text-gray-500 focus:ring-0 ${
+                  disabled={isSubmitting}
+                  className={`w-full border-0 border-b bg-transparent px-0 py-3 text-sm outline-none transition-colors placeholder:text-gray-500 focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 ${
                     lightMode
                       ? 'border-black/10 text-gray-950 focus:border-yellow-500'
                       : 'border-white/10 text-white focus:border-yellow-400'
@@ -219,7 +314,8 @@ const ContactForm: React.FC = () => {
                   placeholder="you@example.com"
                   required
                   autoComplete="email"
-                  className={`w-full border-0 border-b bg-transparent px-0 py-3 text-sm outline-none transition-colors placeholder:text-gray-500 focus:ring-0 ${
+                  disabled={isSubmitting}
+                  className={`w-full border-0 border-b bg-transparent px-0 py-3 text-sm outline-none transition-colors placeholder:text-gray-500 focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 ${
                     lightMode
                       ? 'border-black/10 text-gray-950 focus:border-yellow-500'
                       : 'border-white/10 text-white focus:border-yellow-400'
@@ -228,7 +324,9 @@ const ContactForm: React.FC = () => {
               </div>
             </div>
 
-            {/* Message */}
+            {/* =================================
+                MESSAGE
+            ================================== */}
             <div>
               <label
                 htmlFor="message"
@@ -249,7 +347,8 @@ const ContactForm: React.FC = () => {
                 placeholder="What are you building?"
                 rows={4}
                 required
-                className={`w-full resize-none border-0 border-b bg-transparent px-0 py-3 text-sm leading-7 outline-none transition-colors placeholder:text-gray-500 focus:ring-0 ${
+                disabled={isSubmitting}
+                className={`w-full resize-none border-0 border-b bg-transparent px-0 py-3 text-sm leading-7 outline-none transition-colors placeholder:text-gray-500 focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 ${
                   lightMode
                     ? 'border-black/10 text-gray-950 focus:border-yellow-500'
                     : 'border-white/10 text-white focus:border-yellow-400'
@@ -257,7 +356,9 @@ const ContactForm: React.FC = () => {
               />
             </div>
 
-            {/* Action */}
+            {/* =================================
+                ACTION
+            ================================== */}
             <div className="flex flex-col gap-5 pt-2 sm:flex-row sm:items-center sm:justify-between">
 
               {/* Availability */}
@@ -280,38 +381,31 @@ const ContactForm: React.FC = () => {
               {/* Submit */}
               <motion.button
                 type="submit"
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                className="group inline-flex w-fit items-center gap-3 rounded-full bg-yellow-400 px-6 py-3 text-sm font-semibold text-gray-950 transition-colors hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2"
+                disabled={isSubmitting}
+                whileHover={
+                  !isSubmitting
+                    ? { y: -2 }
+                    : {}
+                }
+                whileTap={
+                  !isSubmitting
+                    ? { scale: 0.98 }
+                    : {}
+                }
+                className="group inline-flex w-fit items-center gap-3 rounded-full bg-yellow-400 px-6 py-3 text-sm font-semibold text-gray-950 transition-colors hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Send message
+                {isSubmitting
+                  ? 'Sending...'
+                  : 'Send message'}
 
-                <FiArrowUpRight
-                  className="transition-transform duration-200 group-hover:translate-x-1 group-hover:-translate-y-1"
-                />
+                {!isSubmitting && (
+                  <FiArrowUpRight
+                    className="transition-transform duration-200 group-hover:translate-x-1 group-hover:-translate-y-1"
+                  />
+                )}
               </motion.button>
             </div>
           </form>
-
-          {/* =================================
-              SUCCESS MESSAGE
-          ================================== */}
-          <AnimatePresence>
-            {isSubmitted && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                className="mt-8 flex items-center gap-3 text-sm text-green-400"
-              >
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-400/10">
-                  <FiCheck />
-                </span>
-
-                Message received. I&apos;ll be in touch.
-              </motion.div>
-            )}
-          </AnimatePresence>
         </motion.div>
 
         {/* =================================

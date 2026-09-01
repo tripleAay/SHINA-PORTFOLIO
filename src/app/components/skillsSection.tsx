@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useContext } from 'react';
@@ -47,57 +46,107 @@ const SkillsSection = () => {
     <section
       id="skills"
       aria-labelledby="skills-title"
-      className={`transition-colors duration-500 ${
+      className={`relative overflow-hidden transition-colors duration-500 ${
         lightMode
-          ? 'bg-white text-gray-950'
-          : 'bg-[#0b0b0d] text-white'
+          ? 'bg-gray-50 text-gray-950'
+          : 'bg-gray-950 text-white'
       }`}
     >
-      <div className="mx-auto max-w-6xl px-6 py-24 sm:px-8 md:py-32 lg:px-10">
+      {/* =================================
+          SUBTLE BACKGROUND GRID
+      ================================== */}
+      <div
+        className={`pointer-events-none absolute inset-0 opacity-[0.025] ${
+          lightMode ? 'text-black' : 'text-white'
+        }`}
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
+          backgroundSize: '80px 80px',
+        }}
+      />
 
-        {/* Header */}
-        <div className="flex items-end justify-between border-b border-current/10 pb-6">
+      {/* =================================
+          SUBTLE RADIAL GLOW
+      ================================== */}
+      <div
+        className={`pointer-events-none absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl transition-opacity duration-500 ${
+          lightMode
+            ? 'bg-yellow-400/[0.035]'
+            : 'bg-yellow-400/[0.025]'
+        }`}
+      />
+
+      <div className="relative mx-auto max-w-6xl px-6 py-24 sm:px-8 md:py-32 lg:px-10">
+
+        {/* =================================
+            HEADER
+        ================================== */}
+        <div
+          className={`flex items-end justify-between border-b pb-6 transition-colors duration-500 ${
+            lightMode
+              ? 'border-black/[0.08]'
+              : 'border-white/[0.08]'
+          }`}
+        >
           <div>
-            <span
-              className={`text-[10px] font-semibold uppercase tracking-[0.24em] ${
-                lightMode ? 'text-gray-400' : 'text-gray-600'
-              }`}
-            >
-              Skills
-            </span>
+            <div className="mb-4 flex items-center gap-3">
+              <span className="h-px w-7 bg-yellow-400" />
+
+              <span
+                className={`text-[10px] font-semibold uppercase tracking-[0.24em] transition-colors duration-500 ${
+                  lightMode
+                    ? 'text-gray-400'
+                    : 'text-gray-500'
+                }`}
+              >
+                Skills
+              </span>
+            </div>
 
             <h2
               id="skills-title"
-              className="mt-3 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl"
+              className={`mt-3 text-3xl font-semibold tracking-[-0.04em] transition-colors duration-500 sm:text-4xl ${
+                lightMode
+                  ? 'text-gray-950'
+                  : 'text-white'
+              }`}
             >
-              What I work with<span className="text-yellow-400">.</span>
+              What I work with
+              <span className="text-yellow-400">.</span>
             </h2>
           </div>
 
           <span
-            className={`hidden text-[10px] uppercase tracking-[0.18em] sm:block ${
-              lightMode ? 'text-gray-400' : 'text-gray-600'
+            className={`hidden text-[10px] uppercase tracking-[0.18em] transition-colors duration-500 sm:block ${
+              lightMode
+                ? 'text-gray-400'
+                : 'text-gray-600'
             }`}
           >
             01 — 03
           </span>
         </div>
 
-        {/* Skills */}
+        {/* =================================
+            SKILLS
+        ================================== */}
         <div>
           {skillGroups.map((group) => (
             <div
               key={group.number}
-              className={`grid gap-6 border-b py-10 md:grid-cols-[70px_180px_1fr] md:items-center ${
+              className={`grid gap-6 border-b py-10 transition-colors duration-500 md:grid-cols-[70px_180px_1fr] md:items-center ${
                 lightMode
-                  ? 'border-gray-900/[0.08]'
+                  ? 'border-black/[0.08]'
                   : 'border-white/[0.08]'
               }`}
             >
               {/* Number */}
               <span
-                className={`text-[10px] tracking-[0.18em] ${
-                  lightMode ? 'text-gray-400' : 'text-gray-600'
+                className={`text-[10px] tracking-[0.18em] transition-colors duration-500 ${
+                  lightMode
+                    ? 'text-gray-400'
+                    : 'text-gray-600'
                 }`}
               >
                 {group.number}
@@ -105,8 +154,10 @@ const SkillsSection = () => {
 
               {/* Category */}
               <h3
-                className={`text-lg font-medium tracking-tight ${
-                  lightMode ? 'text-gray-950' : 'text-gray-100'
+                className={`text-lg font-medium tracking-tight transition-colors duration-500 ${
+                  lightMode
+                    ? 'text-gray-950'
+                    : 'text-gray-100'
                 }`}
               >
                 {group.title}
@@ -117,7 +168,7 @@ const SkillsSection = () => {
                 {group.skills.map((skill) => (
                   <span
                     key={skill}
-                    className={`text-sm ${
+                    className={`text-sm transition-colors duration-300 ${
                       lightMode
                         ? 'text-gray-500'
                         : 'text-gray-400'
@@ -129,6 +180,23 @@ const SkillsSection = () => {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* =================================
+            FOOTNOTE
+        ================================== */}
+        <div
+          className={`mt-8 flex items-center justify-between text-[10px] uppercase tracking-[0.18em] transition-colors duration-500 ${
+            lightMode
+              ? 'text-gray-400'
+              : 'text-gray-600'
+          }`}
+        >
+          <span>Engineering · Product · Design</span>
+
+          <span className="hidden sm:block">
+            Full-stack capabilities
+          </span>
         </div>
       </div>
     </section>

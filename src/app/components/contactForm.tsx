@@ -57,25 +57,57 @@ const ContactForm: React.FC = () => {
       aria-labelledby="contact-title"
       className={`relative overflow-hidden transition-colors duration-500 ${
         lightMode
-          ? 'bg-white text-gray-950'
-          : 'bg-[#0b0b0d] text-white'
+          ? 'bg-gray-50 text-gray-950'
+          : 'bg-gray-950 text-white'
       }`}
     >
-      <div className="mx-auto max-w-5xl px-6 py-28 sm:px-8 md:py-36 lg:px-10 lg:py-44">
-        {/* Section label */}
+      {/* =================================
+          SUBTLE BACKGROUND GRID
+      ================================== */}
+      <div
+        className={`pointer-events-none absolute inset-0 opacity-[0.025] ${
+          lightMode ? 'text-black' : 'text-white'
+        }`}
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
+          backgroundSize: '80px 80px',
+        }}
+      />
+
+      {/* =================================
+          SUBTLE RADIAL GLOW
+      ================================== */}
+      <div
+        className={`pointer-events-none absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl transition-opacity duration-500 ${
+          lightMode
+            ? 'bg-yellow-400/[0.035]'
+            : 'bg-yellow-400/[0.025]'
+        }`}
+      />
+
+      <div className="relative mx-auto max-w-5xl px-6 py-28 sm:px-8 md:py-36 lg:px-10 lg:py-44">
+
+        {/* =================================
+            SECTION LABEL
+        ================================== */}
         <div className="mb-16 flex items-center gap-3">
           <span className="h-px w-7 bg-yellow-400" />
 
           <span
-            className={`text-[10px] font-semibold uppercase tracking-[0.24em] ${
-              lightMode ? 'text-gray-400' : 'text-gray-600'
+            className={`text-[10px] font-semibold uppercase tracking-[0.24em] transition-colors duration-500 ${
+              lightMode
+                ? 'text-gray-400'
+                : 'text-gray-500'
             }`}
           >
             Contact
           </span>
         </div>
 
-        {/* Intro */}
+        {/* =================================
+            INTRO
+        ================================== */}
         <div className="max-w-2xl">
           <motion.h2
             id="contact-title"
@@ -83,11 +115,17 @@ const ContactForm: React.FC = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="text-4xl font-semibold leading-[1.05] tracking-[-0.045em] sm:text-5xl md:text-6xl"
+            className={`text-4xl font-semibold leading-[1.05] tracking-[-0.045em] transition-colors duration-500 sm:text-5xl md:text-6xl ${
+              lightMode
+                ? 'text-gray-950'
+                : 'text-white'
+            }`}
           >
             Have something
             <br />
-            <span className="text-yellow-400">worth building?</span>
+            <span className="text-yellow-400">
+              worth building?
+            </span>
           </motion.h2>
 
           <motion.p
@@ -99,8 +137,10 @@ const ContactForm: React.FC = () => {
               delay: 0.08,
               ease: 'easeOut',
             }}
-            className={`mt-7 max-w-lg text-sm leading-7 sm:text-base ${
-              lightMode ? 'text-gray-500' : 'text-gray-500'
+            className={`mt-7 max-w-lg text-sm leading-7 transition-colors duration-500 sm:text-base ${
+              lightMode
+                ? 'text-gray-500'
+                : 'text-gray-400'
             }`}
           >
             Tell me what you&apos;re working on. Let&apos;s see where it
@@ -108,7 +148,9 @@ const ContactForm: React.FC = () => {
           </motion.p>
         </div>
 
-        {/* Form */}
+        {/* =================================
+            FORM
+        ================================== */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -121,13 +163,18 @@ const ContactForm: React.FC = () => {
           className="mt-20 max-w-3xl"
         >
           <form onSubmit={handleSubmit} className="space-y-10">
+
             {/* Name + Email */}
             <div className="grid gap-10 sm:grid-cols-2">
+
+              {/* Name */}
               <div>
                 <label
                   htmlFor="name"
-                  className={`mb-3 block text-[10px] font-semibold uppercase tracking-[0.18em] ${
-                    lightMode ? 'text-gray-400' : 'text-gray-600'
+                  className={`mb-3 block text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors duration-500 ${
+                    lightMode
+                      ? 'text-gray-400'
+                      : 'text-gray-500'
                   }`}
                 >
                   Name
@@ -144,17 +191,20 @@ const ContactForm: React.FC = () => {
                   autoComplete="name"
                   className={`w-full border-0 border-b bg-transparent px-0 py-3 text-sm outline-none transition-colors placeholder:text-gray-500 focus:ring-0 ${
                     lightMode
-                      ? 'border-gray-900/10 text-gray-950 focus:border-yellow-500'
+                      ? 'border-black/10 text-gray-950 focus:border-yellow-500'
                       : 'border-white/10 text-white focus:border-yellow-400'
                   }`}
                 />
               </div>
 
+              {/* Email */}
               <div>
                 <label
                   htmlFor="email"
-                  className={`mb-3 block text-[10px] font-semibold uppercase tracking-[0.18em] ${
-                    lightMode ? 'text-gray-400' : 'text-gray-600'
+                  className={`mb-3 block text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors duration-500 ${
+                    lightMode
+                      ? 'text-gray-400'
+                      : 'text-gray-500'
                   }`}
                 >
                   Email
@@ -171,7 +221,7 @@ const ContactForm: React.FC = () => {
                   autoComplete="email"
                   className={`w-full border-0 border-b bg-transparent px-0 py-3 text-sm outline-none transition-colors placeholder:text-gray-500 focus:ring-0 ${
                     lightMode
-                      ? 'border-gray-900/10 text-gray-950 focus:border-yellow-500'
+                      ? 'border-black/10 text-gray-950 focus:border-yellow-500'
                       : 'border-white/10 text-white focus:border-yellow-400'
                   }`}
                 />
@@ -182,8 +232,10 @@ const ContactForm: React.FC = () => {
             <div>
               <label
                 htmlFor="message"
-                className={`mb-3 block text-[10px] font-semibold uppercase tracking-[0.18em] ${
-                  lightMode ? 'text-gray-400' : 'text-gray-600'
+                className={`mb-3 block text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors duration-500 ${
+                  lightMode
+                    ? 'text-gray-400'
+                    : 'text-gray-500'
                 }`}
               >
                 Message
@@ -199,7 +251,7 @@ const ContactForm: React.FC = () => {
                 required
                 className={`w-full resize-none border-0 border-b bg-transparent px-0 py-3 text-sm leading-7 outline-none transition-colors placeholder:text-gray-500 focus:ring-0 ${
                   lightMode
-                    ? 'border-gray-900/10 text-gray-950 focus:border-yellow-500'
+                    ? 'border-black/10 text-gray-950 focus:border-yellow-500'
                     : 'border-white/10 text-white focus:border-yellow-400'
                 }`}
               />
@@ -207,19 +259,25 @@ const ContactForm: React.FC = () => {
 
             {/* Action */}
             <div className="flex flex-col gap-5 pt-2 sm:flex-row sm:items-center sm:justify-between">
+
+              {/* Availability */}
               <div
-                className={`flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] ${
-                  lightMode ? 'text-gray-400' : 'text-gray-600'
+                className={`flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] transition-colors duration-500 ${
+                  lightMode
+                    ? 'text-gray-400'
+                    : 'text-gray-500'
                 }`}
               >
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inset-0 animate-ping rounded-full bg-green-400 opacity-50" />
+
                   <span className="relative h-2 w-2 rounded-full bg-green-400" />
                 </span>
 
                 Available for selected projects
               </div>
 
+              {/* Submit */}
               <motion.button
                 type="submit"
                 whileHover={{ y: -2 }}
@@ -235,7 +293,9 @@ const ContactForm: React.FC = () => {
             </div>
           </form>
 
-          {/* Success */}
+          {/* =================================
+              SUCCESS MESSAGE
+          ================================== */}
           <AnimatePresence>
             {isSubmitted && (
               <motion.div
@@ -254,25 +314,31 @@ const ContactForm: React.FC = () => {
           </AnimatePresence>
         </motion.div>
 
-        {/* Minimal footer */}
+        {/* =================================
+            MINIMAL FOOTER
+        ================================== */}
         <div
-          className={`mt-28 flex items-center justify-between border-t pt-5 ${
+          className={`mt-28 flex items-center justify-between border-t pt-5 transition-colors duration-500 ${
             lightMode
-              ? 'border-gray-900/10'
+              ? 'border-black/10'
               : 'border-white/[0.07]'
           }`}
         >
           <span
-            className={`text-[10px] uppercase tracking-[0.18em] ${
-              lightMode ? 'text-gray-400' : 'text-gray-600'
+            className={`text-[10px] uppercase tracking-[0.18em] transition-colors duration-500 ${
+              lightMode
+                ? 'text-gray-400'
+                : 'text-gray-600'
             }`}
           >
             Adeshina Adedokun
           </span>
 
           <span
-            className={`text-[10px] ${
-              lightMode ? 'text-gray-400' : 'text-gray-600'
+            className={`text-[10px] transition-colors duration-500 ${
+              lightMode
+                ? 'text-gray-400'
+                : 'text-gray-600'
             }`}
           >
             Lagos · Nigeria

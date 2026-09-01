@@ -25,7 +25,7 @@ export default function Home() {
 
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
         <Header />
-        <div className="mt-20">
+        <div className="">
           <Hero />
         </div>
         <About />

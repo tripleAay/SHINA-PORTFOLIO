@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useContext } from 'react';
@@ -29,15 +28,32 @@ const About = () => {
   return (
     <section
       id="about"
+      aria-labelledby="about-title"
       className={`relative overflow-hidden transition-colors duration-500 ${
         lightMode
-          ? 'bg-white text-gray-900'
-          : 'bg-[#0b0b0d] text-white'
+          ? 'bg-gray-50 text-gray-950'
+          : 'bg-gray-950 text-white'
       }`}
     >
-      {/* Subtle ambient glow */}
+      {/* =================================
+          SUBTLE BACKGROUND GRID
+      ================================== */}
       <div
-        className={`pointer-events-none absolute left-1/2 top-0 h-[420px] w-[650px] -translate-x-1/2 rounded-full blur-3xl ${
+        className={`pointer-events-none absolute inset-0 opacity-[0.025] ${
+          lightMode ? 'text-black' : 'text-white'
+        }`}
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
+          backgroundSize: '80px 80px',
+        }}
+      />
+
+      {/* =================================
+          SUBTLE RADIAL GLOW
+      ================================== */}
+      <div
+        className={`pointer-events-none absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl transition-opacity duration-500 ${
           lightMode
             ? 'bg-yellow-400/[0.035]'
             : 'bg-yellow-400/[0.025]'
@@ -61,8 +77,10 @@ const About = () => {
             <span className="h-px w-8 bg-yellow-400" />
 
             <span
-              className={`text-[10px] font-semibold uppercase tracking-[0.25em] ${
-                lightMode ? 'text-gray-400' : 'text-gray-500'
+              className={`text-[10px] font-semibold uppercase tracking-[0.25em] transition-colors duration-500 ${
+                lightMode
+                  ? 'text-gray-400'
+                  : 'text-gray-500'
               }`}
             >
               About me
@@ -71,8 +89,11 @@ const About = () => {
 
           {/* Main heading */}
           <h2
-            className={`max-w-4xl text-4xl font-semibold leading-[1.02] tracking-[-0.045em] sm:text-5xl md:text-6xl lg:text-[4.2rem] ${
-              lightMode ? 'text-gray-950' : 'text-white'
+            id="about-title"
+            className={`max-w-4xl text-4xl font-semibold leading-[1.02] tracking-[-0.045em] transition-colors duration-500 sm:text-5xl md:text-6xl lg:text-[4.2rem] ${
+              lightMode
+                ? 'text-gray-950'
+                : 'text-white'
             }`}
           >
             Engineer by craft.
@@ -85,8 +106,10 @@ const About = () => {
 
           {/* Short positioning statement */}
           <p
-            className={`mt-7 max-w-2xl text-base leading-8 sm:text-lg ${
-              lightMode ? 'text-gray-500' : 'text-gray-400'
+            className={`mt-7 max-w-2xl text-base leading-8 transition-colors duration-500 sm:text-lg ${
+              lightMode
+                ? 'text-gray-500'
+                : 'text-gray-400'
             }`}
           >
             I build digital products where technology, design, and
@@ -106,15 +129,19 @@ const About = () => {
         >
           {/* Story */}
           <div
-            className={`max-w-2xl text-[15px] leading-8 ${
-              lightMode ? 'text-gray-600' : 'text-gray-400'
+            className={`max-w-2xl text-[15px] leading-8 transition-colors duration-500 ${
+              lightMode
+                ? 'text-gray-600'
+                : 'text-gray-400'
             }`}
           >
             <p>
               My journey started in{' '}
               <span
                 className={`font-medium ${
-                  lightMode ? 'text-gray-950' : 'text-white'
+                  lightMode
+                    ? 'text-gray-950'
+                    : 'text-white'
                 }`}
               >
                 2013
@@ -129,7 +156,9 @@ const About = () => {
               With an{' '}
               <span
                 className={`font-medium ${
-                  lightMode ? 'text-gray-950' : 'text-white'
+                  lightMode
+                    ? 'text-gray-950'
+                    : 'text-white'
                 }`}
               >
                 HND in Computer Science
@@ -151,7 +180,7 @@ const About = () => {
           {/* Positioning card */}
           <div>
             <div
-              className={`border-l pl-6 ${
+              className={`border-l pl-6 transition-colors duration-500 ${
                 lightMode
                   ? 'border-gray-200'
                   : 'border-white/[0.09]'
@@ -159,7 +188,9 @@ const About = () => {
             >
               <span
                 className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${
-                  lightMode ? 'text-gray-400' : 'text-gray-600'
+                  lightMode
+                    ? 'text-gray-400'
+                    : 'text-gray-600'
                 }`}
               >
                 My approach
@@ -209,7 +240,7 @@ const About = () => {
         ====================================== */}
         <div className="mt-24">
           <div
-            className={`mb-8 h-px w-full ${
+            className={`mb-8 h-px w-full transition-colors duration-500 ${
               lightMode
                 ? 'bg-black/[0.06]'
                 : 'bg-white/[0.07]'
@@ -281,7 +312,7 @@ const About = () => {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className={`mt-20 border-t pt-6 ${
+          className={`mt-20 border-t pt-6 transition-colors duration-500 ${
             lightMode
               ? 'border-black/[0.06]'
               : 'border-white/[0.07]'

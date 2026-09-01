@@ -24,7 +24,7 @@ const Footer = () => {
     <footer
       className={`relative overflow-hidden border-t transition-colors duration-500 ${
         lightMode
-          ? 'border-black/[0.08] bg-[#E8DAB2] text-gray-950'
+          ? 'border-black/[0.08] bg-[#D9CAB3]/40  text-gray-950'
           : 'border-white/[0.07] bg-[#0b0b0d] text-white'
       }`}
     >

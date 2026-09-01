@@ -104,11 +104,11 @@ const Header = () => {
         className={`mx-auto flex h-14 max-w-6xl items-center justify-between rounded-full border px-3 transition-all duration-300 sm:px-4 ${
           scrolled
             ? lightMode
-              ? 'border-gray-900/10 bg-yellow-400 shadow-sm backdrop-blur-xl'
-              : 'border-white/10 bg-gray-950/85 shadow-black/10 backdrop-blur-xl'
+              ? 'border-gray-900/10 bg-[#D9CAB3] shadow-sm backdrop-blur-xl'
+              : 'border-white/10 bg-[#0b0b0d] shadow-black/10 backdrop-blur-xl'
             : lightMode
-              ? 'border-gray-900/5 bg-yellow-400 backdrop-blur-md'
-              : 'border-white/5 bg-gray-950/65 backdrop-blur-md'
+              ? 'border-gray-900/5 bg-[#D9CAB3] backdrop-blur-md'
+              : 'border-white/5 bg-[#0b0b0d] backdrop-blur-md'
         }`}
       >
         {/* Logo */}

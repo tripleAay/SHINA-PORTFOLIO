@@ -7,7 +7,7 @@ import { ThemeContext } from '../contexts/ThemeContext';
 const sections = [
   { id: 'home', label: 'Home' },
   { id: 'about', label: 'About' },
-  { id: 'Portfolio', label: 'Portfolio' },
+  { id: 'portfolio', label: 'Portfolio' },
   { id: 'contact', label: 'Contact' },
 ];
 

@@ -22,21 +22,19 @@ export const ThemeProvider = ({
 }: {
   children: ReactNode;
 }) => {
+  // Dark mode is the default
   const [lightMode, setLightMode] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // Load saved/system theme
+  // Load the user's saved preference
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
 
     if (savedTheme === 'light') {
       setLightMode(true);
-    } else if (savedTheme === 'dark') {
-      setLightMode(false);
     } else {
-      setLightMode(
-        window.matchMedia('(prefers-color-scheme: light)').matches
-      );
+      // Dark is the default
+      setLightMode(false);
     }
 
     setMounted(true);
@@ -62,9 +60,13 @@ export const ThemeProvider = ({
   };
 
   return (
-    <ThemeContext.Provider value={{ lightMode, toggleTheme }}>
+    <ThemeContext.Provider
+      value={{
+        lightMode,
+        toggleTheme,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );
 };
-

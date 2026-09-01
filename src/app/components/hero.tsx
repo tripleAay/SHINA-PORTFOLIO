@@ -40,7 +40,7 @@ const Hero = () => {
       className={`relative flex min-h-[86vh]  items-center overflow-hidden transition-colors duration-500 ${
         lightMode
           ? 'bg-[#EAEAEA] text-gray-950'
-          : 'bg-gray-950 text-white'
+          : 'bg-[#0b0b0d] text-white'
       }`}
     >
       {/* =================================

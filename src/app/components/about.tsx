@@ -32,7 +32,7 @@ const About = () => {
       className={`relative overflow-hidden transition-colors duration-500 ${
         lightMode
           ? 'bg-[#EAEAEA] text-gray-950'
-          : 'bg-gray-950 text-white'
+          : 'bg-[#0b0b0d] text-white'
       }`}
     >
       {/* =================================

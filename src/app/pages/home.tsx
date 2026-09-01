@@ -23,7 +23,7 @@ export default function Home() {
         <link rel="canonical" href="https://yourwebsite.com" /> {/* Replace with your website URL */}
       </Head>
 
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
+      <div className="min-h-screen bg-[#EAEAEA] dark:bg-gray-900 transition-colors duration-300">
         <Header />
         <div className="">
           <Hero />

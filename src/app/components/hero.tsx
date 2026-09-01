@@ -37,9 +37,9 @@ const Hero = () => {
     <section
       id="home"
       aria-labelledby="hero-title"
-      className={`relative flex min-h-[86vh] items-center overflow-hidden transition-colors duration-500 ${
+      className={`relative flex min-h-[86vh]  items-center overflow-hidden transition-colors duration-500 ${
         lightMode
-          ? 'bg-gray-50 text-gray-950'
+          ? 'bg-[#EAEAEA] text-gray-950'
           : 'bg-gray-950 text-white'
       }`}
     >
@@ -66,7 +66,7 @@ const Hero = () => {
         }`}
       />
 
-      <div className="relative mx-auto w-full max-w-6xl px-6 py-16 sm:px-8 lg:px-10 lg:py-20">
+      <div className="relative mx-auto w-full max-w-6xl px-6 pb-16 pt-28 sm:px-8 sm:pb-16 sm:pt-28 lg:px-10 lg:pb-20 lg:pt-32">
 
         {/* =================================
             TOP META LINE

@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useMemo,
   useState,
   ChangeEvent,
   FormEvent,
@@ -11,7 +12,6 @@ import Link from 'next/link';
 import {
   FiArrowLeft,
   FiCheck,
-  FiImage,
   FiLoader,
   FiSave,
   FiUpload,
@@ -19,7 +19,7 @@ import {
 } from 'react-icons/fi';
 
 import { useTheme } from '@/app/contexts/ThemeContext';
-import { supabase } from '@/app/lib/supabase';
+import { createClient } from '@/app/lib/client';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_IMAGES = 5;
@@ -42,6 +42,18 @@ type NewImage = {
 };
 
 export default function EditProjectPage() {
+  /*
+   * IMPORTANT:
+   * Create the browser Supabase client inside the component.
+   *
+   * Do NOT use:
+   * import { supabase } from '@/app/lib/supabase';
+   *
+   * This prevents the module-level Supabase client from being
+   * evaluated during the Next.js/Vercel build.
+   */
+  const supabase = useMemo(() => createClient(), []);
+
   const { lightMode } = useTheme();
   const router = useRouter();
   const params = useParams();
@@ -54,8 +66,7 @@ export default function EditProjectPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
-  const [technologies, setTechnologies] =
-    useState('');
+  const [technologies, setTechnologies] = useState('');
   const [link, setLink] = useState('');
   const [featured, setFeatured] = useState(false);
 
@@ -85,11 +96,8 @@ export default function EditProjectPage() {
   useEffect(() => {
     loadProject();
 
-    return () => {
-      newImages.forEach((image) => {
-        URL.revokeObjectURL(image.preview);
-      });
-    };
+    // Preview URLs are revoked when images are removed
+    // or after a successful save.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
@@ -97,66 +105,74 @@ export default function EditProjectPage() {
     setLoading(true);
     setError('');
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    if (!user) {
-      router.replace('/admin/login');
-      return;
-    }
+      if (!user) {
+        router.replace('/admin/login');
+        return;
+      }
 
-    const { data, error: fetchError } =
-      await supabase
-        .from('portfolio')
-        .select(
-          'id, title, description, image, images, link, category, technologies, featured'
-        )
-        .eq('id', projectId)
-        .single();
+      const { data, error: fetchError } =
+        await supabase
+          .from('portfolio')
+          .select(
+            'id, title, description, image, images, link, category, technologies, featured'
+          )
+          .eq('id', projectId)
+          .single();
 
-    if (fetchError || !data) {
+      if (fetchError || !data) {
+        setError(
+          fetchError?.message ||
+            'Project could not be found.'
+        );
+        setLoading(false);
+        return;
+      }
+
+      const loadedProject =
+        data as PortfolioProject;
+
+      setProject(loadedProject);
+
+      setTitle(loadedProject.title);
+      setDescription(loadedProject.description);
+      setCategory(
+        loadedProject.category || ''
+      );
+      setTechnologies(
+        loadedProject.technologies || ''
+      );
+      setLink(loadedProject.link || '');
+      setFeatured(loadedProject.featured);
+
+      /*
+       * New projects use `images`.
+       *
+       * Older projects may only have `image`,
+       * so we fall back to that.
+       */
+      const loadedImages =
+        Array.isArray(loadedProject.images) &&
+        loadedProject.images.length > 0
+          ? loadedProject.images
+          : loadedProject.image
+            ? [loadedProject.image]
+            : [];
+
+      setExistingImages(loadedImages);
+      setLoading(false);
+    } catch (err) {
       setError(
-        fetchError?.message ||
-          'Project could not be found.'
+        err instanceof Error
+          ? err.message
+          : 'Something went wrong while loading the project.'
       );
       setLoading(false);
-      return;
     }
-
-    const loadedProject =
-      data as PortfolioProject;
-
-    setProject(loadedProject);
-
-    setTitle(loadedProject.title);
-    setDescription(loadedProject.description);
-    setCategory(
-      loadedProject.category || ''
-    );
-    setTechnologies(
-      loadedProject.technologies || ''
-    );
-    setLink(loadedProject.link || '');
-    setFeatured(loadedProject.featured);
-
-    /*
-     * New projects use `images`.
-     *
-     * Older projects may only have `image`,
-     * so we fall back to that.
-     */
-    const loadedImages =
-      Array.isArray(loadedProject.images) &&
-      loadedProject.images.length > 0
-        ? loadedProject.images
-        : loadedProject.image
-          ? [loadedProject.image]
-          : [];
-
-    setExistingImages(loadedImages);
-
-    setLoading(false);
   }
 
   /* -------------------------------------------------------------------------- */
@@ -185,6 +201,7 @@ export default function EditProjectPage() {
       setError(
         `A project can have a maximum of ${MAX_IMAGES} images.`
       );
+
       event.target.value = '';
       return;
     }
@@ -195,6 +212,7 @@ export default function EditProjectPage() {
           remainingSlots === 1 ? '' : 's'
         }.`
       );
+
       event.target.value = '';
       return;
     }
@@ -235,6 +253,8 @@ export default function EditProjectPage() {
   /* -------------------------------------------------------------------------- */
 
   function removeExistingImage(index: number) {
+    if (saving) return;
+
     setExistingImages((current) =>
       current.filter(
         (_, imageIndex) =>
@@ -248,6 +268,8 @@ export default function EditProjectPage() {
   /* -------------------------------------------------------------------------- */
 
   function removeNewImage(index: number) {
+    if (saving) return;
+
     setNewImages((current) => {
       const image = current[index];
 
@@ -268,7 +290,7 @@ export default function EditProjectPage() {
 
   function getStoragePathFromUrl(
     url: string
-  ) {
+  ): string | null {
     const marker =
       '/storage/v1/object/public/portfolio-images/';
 
@@ -343,7 +365,7 @@ export default function EditProjectPage() {
     } catch (uploadError) {
       /*
        * If one of several uploads fails,
-       * remove anything that was already uploaded.
+       * remove everything that was already uploaded.
        */
       if (uploadedPaths.length > 0) {
         await supabase.storage
@@ -414,8 +436,13 @@ export default function EditProjectPage() {
     setSaving(true);
 
     let uploadedImagePaths: string[] = [];
+    let databaseUpdated = false;
 
     try {
+      /* ---------------------------------------------------------------------- */
+      /* Verify authentication                                                  */
+      /* ---------------------------------------------------------------------- */
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -452,8 +479,8 @@ export default function EditProjectPage() {
       /*
        * First image is always the primary image.
        *
-       * This keeps your existing `image` column
-       * working with your current portfolio component.
+       * This keeps the existing `image` column
+       * compatible with older portfolio code.
        */
       const primaryImage =
         finalImages.length > 0
@@ -489,15 +516,12 @@ export default function EditProjectPage() {
           })
           .eq('id', projectId);
 
-      /* ---------------------------------------------------------------------- */
-      /* Database failed                                                        */
-      /* ---------------------------------------------------------------------- */
-
       if (updateError) {
         /*
-         * Remove newly uploaded images.
+         * Database failed.
          *
-         * Existing images were never touched.
+         * Remove newly uploaded images because
+         * they are not referenced by the database.
          */
         if (uploadedImagePaths.length > 0) {
           await supabase.storage
@@ -505,12 +529,20 @@ export default function EditProjectPage() {
             .remove(
               uploadedImagePaths
             );
+
+          uploadedImagePaths = [];
         }
 
         throw new Error(
           updateError.message
         );
       }
+
+      /*
+       * From this point onward, the new images
+       * belong to the saved project.
+       */
+      databaseUpdated = true;
 
       /* ---------------------------------------------------------------------- */
       /* Delete removed old images                                              */
@@ -532,9 +564,17 @@ export default function EditProjectPage() {
         );
 
       if (removedImages.length > 0) {
-        await deleteStorageImages(
-          removedImages
-        );
+        /*
+         * Storage cleanup should not make the
+         * database update appear to have failed.
+         */
+        try {
+          await deleteStorageImages(
+            removedImages
+          );
+        } catch {
+          // Database is already updated.
+        }
       }
 
       /* ---------------------------------------------------------------------- */
@@ -576,16 +616,26 @@ export default function EditProjectPage() {
         'Project updated successfully.'
       );
 
+      /* ---------------------------------------------------------------------- */
+      /* Redirect                                                               */
+      /* ---------------------------------------------------------------------- */
+
       setTimeout(() => {
         router.push('/admin/projects');
         router.refresh();
       }, 900);
     } catch (err) {
       /*
-       * Safety cleanup in case an unexpected
-       * error happens after uploading.
+       * Only clean up newly uploaded images if
+       * the database was NOT successfully updated.
+       *
+       * This prevents accidentally deleting images
+       * that are already referenced by the project.
        */
-      if (uploadedImagePaths.length > 0) {
+      if (
+        !databaseUpdated &&
+        uploadedImagePaths.length > 0
+      ) {
         await supabase.storage
           .from('portfolio-images')
           .remove(
@@ -832,18 +882,23 @@ export default function EditProjectPage() {
                     <option value="">
                       Select category
                     </option>
+
                     <option value="Web">
                       Web
                     </option>
+
                     <option value="Mobile">
                       Mobile
                     </option>
+
                     <option value="Design">
                       Design
                     </option>
+
                     <option value="API">
                       API
                     </option>
+
                     <option value="Other">
                       Other
                     </option>
@@ -915,10 +970,7 @@ export default function EditProjectPage() {
                 />
               </div>
 
-              {/* ---------------------------------------------------------------- */}
-              {/* Images                                                           */}
-              {/* ---------------------------------------------------------------- */}
-
+              {/* Images */}
               <div>
                 <div className="mb-3 flex items-end justify-between gap-4">
                   <div>
@@ -958,7 +1010,7 @@ export default function EditProjectPage() {
                     {existingImages.map(
                       (image, index) => (
                         <div
-                          key={image}
+                          key={`${image}-${index}`}
                           className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-white/10"
                         >
                           <img

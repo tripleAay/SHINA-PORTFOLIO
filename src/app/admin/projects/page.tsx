@@ -12,15 +12,15 @@ import {
   FiGrid,
   FiList,
   FiMenu,
-  FiMoon,
   FiPlus,
   FiSearch,
   FiSun,
+  FiMoon,
   FiTrash2,
   FiX,
 } from 'react-icons/fi';
 
-import { supabase } from '@/app/lib/supabase';
+import { createClient } from '@/app/lib/client';
 import { useTheme } from '@/app/contexts/ThemeContext';
 
 type Project = {
@@ -39,6 +39,21 @@ export default function ProjectsPage() {
   const router = useRouter();
   const { lightMode, toggleTheme } = useTheme();
 
+  /*
+   * Create the Supabase browser client inside the component.
+   *
+   * IMPORTANT:
+   * Do not use:
+   *
+   * import { supabase } from '@/app/lib/supabase';
+   *
+   * This avoids the Vercel build error caused by creating the
+   * Supabase client during module evaluation.
+   *
+   * useMemo keeps the same client instance for this component.
+   */
+  const supabase = useMemo(() => createClient(), []);
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -56,36 +71,53 @@ export default function ProjectsPage() {
     setLoading(true);
     setError('');
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-    if (!user) {
-      router.replace('/admin/login');
-      return;
-    }
+      if (userError) {
+        throw new Error(userError.message);
+      }
 
-    const { data, error: fetchError } = await supabase
-      .from('portfolio')
-      .select(
-        'id, title, description, image, link, category, technologies, featured, created_at'
-      )
-      .order('created_at', { ascending: false });
+      if (!user) {
+        router.replace('/admin/login');
+        return;
+      }
 
-    if (fetchError) {
-      setError('Unable to load your projects.');
+      const { data, error: fetchError } = await supabase
+        .from('portfolio')
+        .select(
+          'id, title, description, image, link, category, technologies, featured, created_at'
+        )
+        .order('created_at', { ascending: false });
+
+      if (fetchError) {
+        throw new Error(fetchError.message);
+      }
+
+      setProjects((data ?? []) as Project[]);
+    } catch (err) {
+      console.error('Load projects error:', err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to load your projects.'
+      );
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setProjects(data ?? []);
-    setLoading(false);
   }
 
   const categories = useMemo(() => {
     const values = projects
       .map((project) => project.category)
-      .filter((value): value is string => Boolean(value?.trim()));
+      .filter(
+        (value): value is string =>
+          Boolean(value?.trim())
+      );
 
     return ['All', ...Array.from(new Set(values))];
   }, [projects]);
@@ -95,13 +127,16 @@ export default function ProjectsPage() {
 
     return projects.filter((project) => {
       const matchesCategory =
-        category === 'All' || project.category === category;
+        category === 'All' ||
+        project.category === category;
 
       const matchesSearch =
         !query ||
         project.title.toLowerCase().includes(query) ||
         project.description.toLowerCase().includes(query) ||
-        project.technologies?.toLowerCase().includes(query);
+        project.technologies
+          ?.toLowerCase()
+          .includes(query);
 
       return matchesCategory && matchesSearch;
     });
@@ -115,44 +150,109 @@ export default function ProjectsPage() {
     if (!confirmed) return;
 
     setDeletingId(project.id);
+    setError('');
 
-    const { error: deleteError } = await supabase
-      .from('portfolio')
-      .delete()
-      .eq('id', project.id);
+    try {
+      const { error: deleteError } = await supabase
+        .from('portfolio')
+        .delete()
+        .eq('id', project.id);
 
-    if (deleteError) {
-      window.alert('Unable to delete this project.');
+      if (deleteError) {
+        throw new Error(deleteError.message);
+      }
+
+      /*
+       * Remove the project from the UI immediately.
+       */
+      setProjects((current) =>
+        current.filter(
+          (item) => item.id !== project.id
+        )
+      );
+
+      /*
+       * Remove the old image from Supabase Storage if
+       * this project has one.
+       *
+       * Failure here does not undo the database deletion.
+       */
+      if (project.image) {
+        const storagePath =
+          getStoragePathFromUrl(project.image);
+
+        if (storagePath) {
+          await supabase.storage
+            .from('portfolio-images')
+            .remove([storagePath]);
+        }
+      }
+    } catch (err) {
+      console.error('Delete project error:', err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to delete this project.'
+      );
+    } finally {
       setDeletingId(null);
-      return;
     }
-
-    setProjects((current) =>
-      current.filter((item) => item.id !== project.id)
-    );
-
-    setDeletingId(null);
   }
 
   async function toggleFeatured(project: Project) {
     const nextValue = !project.featured;
 
-    const { error: updateError } = await supabase
-      .from('portfolio')
-      .update({ featured: nextValue })
-      .eq('id', project.id);
+    setError('');
 
-    if (updateError) {
-      window.alert('Unable to update featured status.');
-      return;
+    try {
+      const { error: updateError } = await supabase
+        .from('portfolio')
+        .update({
+          featured: nextValue,
+        })
+        .eq('id', project.id);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      setProjects((current) =>
+        current.map((item) =>
+          item.id === project.id
+            ? {
+                ...item,
+                featured: nextValue,
+              }
+            : item
+        )
+      );
+    } catch (err) {
+      console.error(
+        'Toggle featured error:',
+        err
+      );
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to update featured status.'
+      );
+    }
+  }
+
+  function getStoragePathFromUrl(url: string) {
+    const marker =
+      '/storage/v1/object/public/portfolio-images/';
+
+    const index = url.indexOf(marker);
+
+    if (index === -1) {
+      return null;
     }
 
-    setProjects((current) =>
-      current.map((item) =>
-        item.id === project.id
-          ? { ...item, featured: nextValue }
-          : item
-      )
+    return decodeURIComponent(
+      url.substring(index + marker.length)
     );
   }
 
@@ -183,7 +283,9 @@ export default function ProjectsPage() {
       {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex w-[250px] flex-col border-r transition-transform duration-300 ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          mobileMenuOpen
+            ? 'translate-x-0'
+            : '-translate-x-full'
         } lg:translate-x-0 ${
           lightMode
             ? 'border-black/[0.07] bg-[#F2EFE8]'
@@ -193,13 +295,17 @@ export default function ProjectsPage() {
         {/* Logo */}
         <div
           className={`flex h-[76px] items-center border-b px-6 ${
-            lightMode ? 'border-black/[0.07]' : 'border-white/[0.07]'
+            lightMode
+              ? 'border-black/[0.07]'
+              : 'border-white/[0.07]'
           }`}
         >
           <Link
             href="/admin/dashboard"
             className="flex items-center gap-3"
-            onClick={() => setMobileMenuOpen(false)}
+            onClick={() =>
+              setMobileMenuOpen(false)
+            }
           >
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-yellow-400 text-xs font-bold text-black">
               AA
@@ -217,7 +323,9 @@ export default function ProjectsPage() {
           </Link>
 
           <button
-            onClick={() => setMobileMenuOpen(false)}
+            onClick={() =>
+              setMobileMenuOpen(false)
+            }
             className="ml-auto text-zinc-500 lg:hidden"
           >
             <FiX size={19} />
@@ -228,7 +336,7 @@ export default function ProjectsPage() {
         <nav className="flex-1 space-y-7 px-4 py-7">
           <NavGroup label="Overview">
             <NavItem
-              href="/admin"
+              href="/admin/dashboard"
               icon={<FiGrid size={17} />}
               lightMode={lightMode}
             >
@@ -258,7 +366,11 @@ export default function ProjectsPage() {
           <NavGroup label="Communication">
             <NavItem
               href="/admin/messages"
-              icon={<span className="text-[17px]">✉</span>}
+              icon={
+                <span className="text-[17px]">
+                  ✉
+                </span>
+              }
               lightMode={lightMode}
             >
               Messages
@@ -268,7 +380,11 @@ export default function ProjectsPage() {
           <NavGroup label="System">
             <NavItem
               href="/admin/settings"
-              icon={<span className="text-[16px]">⚙</span>}
+              icon={
+                <span className="text-[16px]">
+                  ⚙
+                </span>
+              }
               lightMode={lightMode}
             >
               Settings
@@ -276,9 +392,12 @@ export default function ProjectsPage() {
           </NavGroup>
         </nav>
 
+        {/* Sidebar footer */}
         <div
           className={`space-y-1 border-t p-4 ${
-            lightMode ? 'border-black/[0.07]' : 'border-white/[0.07]'
+            lightMode
+              ? 'border-black/[0.07]'
+              : 'border-white/[0.07]'
           }`}
         >
           <Link
@@ -314,7 +433,9 @@ export default function ProjectsPage() {
           }`}
         >
           <button
-            onClick={() => setMobileMenuOpen(true)}
+            onClick={() =>
+              setMobileMenuOpen(true)
+            }
             className="rounded-xl p-2 text-zinc-500 lg:hidden"
           >
             <FiMenu size={21} />
@@ -329,23 +450,43 @@ export default function ProjectsPage() {
           <div className="ml-auto flex items-center gap-2">
             <button
               onClick={toggleTheme}
+              aria-label={
+                lightMode
+                  ? 'Switch to dark mode'
+                  : 'Switch to light mode'
+              }
               className={`flex h-10 w-10 items-center justify-center rounded-xl border ${
                 lightMode
                   ? 'border-black/[0.07] text-zinc-600 hover:bg-black/[0.04]'
                   : 'border-white/[0.08] text-zinc-400 hover:bg-white/[0.05]'
               }`}
             >
-              {lightMode ? <FiMoon size={17} /> : <FiSun size={17} />}
+              {lightMode ? (
+                <FiMoon size={17} />
+              ) : (
+                <FiSun size={17} />
+              )}
             </button>
 
-            <div className="ml-2 hidden items-center gap-3 border-l border-white/[0.07] pl-4 sm:flex">
+            <div
+              className={`ml-2 hidden items-center gap-3 border-l pl-4 sm:flex ${
+                lightMode
+                  ? 'border-black/[0.07]'
+                  : 'border-white/[0.07]'
+              }`}
+            >
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-yellow-400 text-xs font-bold text-black">
                 AA
               </div>
 
               <div className="hidden md:block">
-                <p className="text-sm font-medium">Shina Adedokun</p>
-                <p className="text-[11px] text-zinc-500">Administrator</p>
+                <p className="text-sm font-medium">
+                  Shina Adedokun
+                </p>
+
+                <p className="text-[11px] text-zinc-500">
+                  Administrator
+                </p>
               </div>
             </div>
           </div>
@@ -365,7 +506,8 @@ export default function ProjectsPage() {
               </h1>
 
               <p className="mt-2 text-sm text-zinc-500">
-                Manage the work displayed on your portfolio.
+                Manage the work displayed on your
+                portfolio.
               </p>
             </div>
 
@@ -395,7 +537,9 @@ export default function ProjectsPage() {
 
               <input
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) =>
+                  setSearch(event.target.value)
+                }
                 placeholder="Search projects..."
                 className={`h-11 w-full rounded-xl border bg-transparent pl-11 pr-4 text-sm outline-none transition ${
                   lightMode
@@ -407,6 +551,7 @@ export default function ProjectsPage() {
               {search && (
                 <button
                   onClick={() => setSearch('')}
+                  aria-label="Clear search"
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
                 >
                   <FiX size={15} />
@@ -423,7 +568,9 @@ export default function ProjectsPage() {
 
               <select
                 value={category}
-                onChange={(event) => setCategory(event.target.value)}
+                onChange={(event) =>
+                  setCategory(event.target.value)
+                }
                 className={`h-11 w-full appearance-none rounded-xl border bg-transparent pl-10 pr-9 text-sm outline-none sm:w-[180px] ${
                   lightMode
                     ? 'border-black/[0.07]'
@@ -448,6 +595,7 @@ export default function ProjectsPage() {
             >
               <button
                 onClick={() => setView('grid')}
+                aria-label="Grid view"
                 className={`flex h-9 w-9 items-center justify-center rounded-lg ${
                   view === 'grid'
                     ? 'bg-yellow-400 text-black'
@@ -459,6 +607,7 @@ export default function ProjectsPage() {
 
               <button
                 onClick={() => setView('list')}
+                aria-label="List view"
                 className={`flex h-9 w-9 items-center justify-center rounded-lg ${
                   view === 'list'
                     ? 'bg-yellow-400 text-black'
@@ -476,7 +625,9 @@ export default function ProjectsPage() {
               {loading
                 ? 'Loading projects...'
                 : `${filteredProjects.length} ${
-                    filteredProjects.length === 1 ? 'project' : 'projects'
+                    filteredProjects.length === 1
+                      ? 'project'
+                      : 'projects'
                   }`}
             </p>
 
@@ -511,43 +662,48 @@ export default function ProjectsPage() {
           )}
 
           {/* Loading */}
-          {loading && !error && <ProjectSkeleton view={view} />}
+          {loading && !error && (
+            <ProjectSkeleton view={view} />
+          )}
 
           {/* Empty */}
-          {!loading && !error && filteredProjects.length === 0 && (
-            <div
-              className={`flex min-h-[360px] flex-col items-center justify-center rounded-2xl border px-6 text-center ${
-                lightMode
-                  ? 'border-black/[0.07] bg-white/50'
-                  : 'border-white/[0.07] bg-white/[0.025]'
-              }`}
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-400/10 text-yellow-500">
-                <FiBriefcase size={20} />
+          {!loading &&
+            !error &&
+            filteredProjects.length === 0 && (
+              <div
+                className={`flex min-h-[360px] flex-col items-center justify-center rounded-2xl border px-6 text-center ${
+                  lightMode
+                    ? 'border-black/[0.07] bg-white/50'
+                    : 'border-white/[0.07] bg-white/[0.025]'
+                }`}
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-400/10 text-yellow-500">
+                  <FiBriefcase size={20} />
+                </div>
+
+                <h2 className="mt-5 text-sm font-semibold">
+                  {search || category !== 'All'
+                    ? 'No matching projects'
+                    : 'No projects yet'}
+                </h2>
+
+                <p className="mt-2 max-w-sm text-xs leading-5 text-zinc-500">
+                  {search || category !== 'All'
+                    ? 'Try changing your search or category filter.'
+                    : 'Your portfolio is ready for its first project.'}
+                </p>
+
+                {!search &&
+                  category === 'All' && (
+                    <Link
+                      href="/admin/projects/new"
+                      className="mt-5 rounded-xl bg-yellow-400 px-4 py-2.5 text-xs font-semibold text-black hover:bg-yellow-300"
+                    >
+                      Add your first project
+                    </Link>
+                  )}
               </div>
-
-              <h2 className="mt-5 text-sm font-semibold">
-                {search || category !== 'All'
-                  ? 'No matching projects'
-                  : 'No projects yet'}
-              </h2>
-
-              <p className="mt-2 max-w-sm text-xs leading-5 text-zinc-500">
-                {search || category !== 'All'
-                  ? 'Try changing your search or category filter.'
-                  : 'Your portfolio is ready for its first project.'}
-              </p>
-
-              {!search && category === 'All' && (
-                <Link
-                  href="/admin/projects/new"
-                  className="mt-5 rounded-xl bg-yellow-400 px-4 py-2.5 text-xs font-semibold text-black hover:bg-yellow-300"
-                >
-                  Add your first project
-                </Link>
-              )}
-            </div>
-          )}
+            )}
 
           {/* Grid */}
           {!loading &&
@@ -555,16 +711,22 @@ export default function ProjectsPage() {
             filteredProjects.length > 0 &&
             view === 'grid' && (
               <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {filteredProjects.map((project) => (
-                  <ProjectCard
-                    key={project.id}
-                    project={project}
-                    lightMode={lightMode}
-                    deleting={deletingId === project.id}
-                    onDelete={handleDelete}
-                    onToggleFeatured={toggleFeatured}
-                  />
-                ))}
+                {filteredProjects.map(
+                  (project) => (
+                    <ProjectCard
+                      key={project.id}
+                      project={project}
+                      lightMode={lightMode}
+                      deleting={
+                        deletingId === project.id
+                      }
+                      onDelete={handleDelete}
+                      onToggleFeatured={
+                        toggleFeatured
+                      }
+                    />
+                  )
+                )}
               </div>
             )}
 
@@ -580,17 +742,26 @@ export default function ProjectsPage() {
                     : 'border-white/[0.07] bg-white/[0.025]'
                 }`}
               >
-                {filteredProjects.map((project, index) => (
-                  <ProjectListRow
-                    key={project.id}
-                    project={project}
-                    lightMode={lightMode}
-                    deleting={deletingId === project.id}
-                    last={index === filteredProjects.length - 1}
-                    onDelete={handleDelete}
-                    onToggleFeatured={toggleFeatured}
-                  />
-                ))}
+                {filteredProjects.map(
+                  (project, index) => (
+                    <ProjectListRow
+                      key={project.id}
+                      project={project}
+                      lightMode={lightMode}
+                      deleting={
+                        deletingId === project.id
+                      }
+                      last={
+                        index ===
+                        filteredProjects.length - 1
+                      }
+                      onDelete={handleDelete}
+                      onToggleFeatured={
+                        toggleFeatured
+                      }
+                    />
+                  )
+                )}
               </div>
             )}
         </section>
@@ -616,7 +787,9 @@ function NavGroup({
         {label}
       </p>
 
-      <div className="space-y-1">{children}</div>
+      <div className="space-y-1">
+        {children}
+      </div>
     </div>
   );
 }
@@ -679,7 +852,9 @@ function ProjectCard({
       {/* Image */}
       <div
         className={`relative aspect-[16/10] overflow-hidden ${
-          lightMode ? 'bg-[#E7E1D7]' : 'bg-white/[0.04]'
+          lightMode
+            ? 'bg-[#E7E1D7]'
+            : 'bg-white/[0.04]'
         }`}
       >
         {project.image ? (
@@ -702,14 +877,18 @@ function ProjectCard({
 
         <div className="absolute right-3 top-3">
           <button
-            onClick={() => onToggleFeatured(project)}
+            onClick={() =>
+              onToggleFeatured(project)
+            }
             className={`rounded-full px-2.5 py-1 text-[9px] font-medium backdrop-blur-md transition ${
               project.featured
                 ? 'bg-black/50 text-white'
                 : 'bg-black/40 text-white/70 hover:text-white'
             }`}
           >
-            {project.featured ? 'Unfeature' : 'Feature'}
+            {project.featured
+              ? 'Unfeature'
+              : 'Feature'}
           </button>
         </div>
       </div>
@@ -723,21 +902,23 @@ function ProjectCard({
             </h2>
 
             <p className="mt-1 text-[11px] text-zinc-500">
-              {project.category || 'Uncategorized'}
+              {project.category ||
+                'Uncategorized'}
             </p>
           </div>
 
-          {project.link && project.link !== '#' && (
-            <a
-              href={project.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={`Open ${project.title}`}
-              className="shrink-0 text-zinc-500 transition hover:text-yellow-500"
-            >
-              <FiExternalLink size={15} />
-            </a>
-          )}
+          {project.link &&
+            project.link !== '#' && (
+              <a
+                href={project.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Open ${project.title}`}
+                className="shrink-0 text-zinc-500 transition hover:text-yellow-500"
+              >
+                <FiExternalLink size={15} />
+              </a>
+            )}
         </div>
 
         <p className="mt-4 line-clamp-2 text-xs leading-5 text-zinc-500">
@@ -770,15 +951,13 @@ function ProjectCard({
         {/* Actions */}
         <div
           className={`mt-5 flex items-center justify-between border-t pt-4 ${
-            lightMode ? 'border-black/[0.06]' : 'border-white/[0.06]'
+            lightMode
+              ? 'border-black/[0.06]'
+              : 'border-white/[0.06]'
           }`}
         >
           <p className="text-[10px] text-zinc-600">
-            {new Intl.DateTimeFormat('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            }).format(new Date(project.created_at))}
+            {formatProjectDate(project.created_at)}
           </p>
 
           <div className="flex items-center gap-1">
@@ -791,12 +970,17 @@ function ProjectCard({
             </Link>
 
             <button
-              onClick={() => onDelete(project)}
+              onClick={() =>
+                onDelete(project)
+              }
               disabled={deleting}
               className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] text-zinc-500 transition hover:bg-red-400/10 hover:text-red-400 disabled:opacity-50"
             >
               <FiTrash2 size={13} />
-              {deleting ? 'Deleting...' : 'Delete'}
+
+              {deleting
+                ? 'Deleting...'
+                : 'Delete'}
             </button>
           </div>
         </div>
@@ -836,7 +1020,9 @@ function ProjectListRow({
     >
       <div
         className={`h-16 w-full shrink-0 overflow-hidden rounded-xl sm:h-14 sm:w-20 ${
-          lightMode ? 'bg-[#E7E1D7]' : 'bg-white/[0.04]'
+          lightMode
+            ? 'bg-[#E7E1D7]'
+            : 'bg-white/[0.04]'
         }`}
       >
         {project.image ? (
@@ -854,7 +1040,9 @@ function ProjectListRow({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <h2 className="truncate text-sm font-medium">{project.title}</h2>
+          <h2 className="truncate text-sm font-medium">
+            {project.title}
+          </h2>
 
           {project.featured && (
             <span className="rounded-full bg-yellow-400/10 px-2 py-0.5 text-[9px] text-yellow-500">
@@ -868,24 +1056,31 @@ function ProjectListRow({
         </p>
 
         <div className="mt-2 flex gap-2 text-[10px] text-zinc-600">
-          <span>{project.category || 'Uncategorized'}</span>
-          <span>·</span>
           <span>
-            {new Intl.DateTimeFormat('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            }).format(new Date(project.created_at))}
+            {project.category ||
+              'Uncategorized'}
+          </span>
+
+          <span>·</span>
+
+          <span>
+            {formatProjectDate(
+              project.created_at
+            )}
           </span>
         </div>
       </div>
 
       <div className="flex items-center gap-1">
         <button
-          onClick={() => onToggleFeatured(project)}
+          onClick={() =>
+            onToggleFeatured(project)
+          }
           className="rounded-lg px-3 py-2 text-[11px] text-zinc-500 hover:bg-yellow-400/10 hover:text-yellow-500"
         >
-          {project.featured ? 'Unfeature' : 'Feature'}
+          {project.featured
+            ? 'Unfeature'
+            : 'Feature'}
         </button>
 
         <Link
@@ -896,24 +1091,45 @@ function ProjectListRow({
         </Link>
 
         <button
-          onClick={() => onDelete(project)}
+          onClick={() =>
+            onDelete(project)
+          }
           disabled={deleting}
-          className="rounded-lg p-2.5 text-zinc-500 hover:bg-red-400/10 hover:text-red-400"
+          className="rounded-lg p-2.5 text-zinc-500 hover:bg-red-400/10 hover:text-red-400 disabled:opacity-50"
         >
           <FiTrash2 size={15} />
         </button>
 
-        <FiChevronRight size={15} className="ml-1 text-zinc-700" />
+        <FiChevronRight
+          size={15}
+          className="ml-1 text-zinc-700"
+        />
       </div>
     </div>
   );
 }
 
 /* -------------------------------------------------------------------------- */
+/* Helpers                                                                    */
+/* -------------------------------------------------------------------------- */
+
+function formatProjectDate(date: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(date));
+}
+
+/* -------------------------------------------------------------------------- */
 /* Loading                                                                    */
 /* -------------------------------------------------------------------------- */
 
-function ProjectSkeleton({ view }: { view: 'grid' | 'list' }) {
+function ProjectSkeleton({
+  view,
+}: {
+  view: 'grid' | 'list';
+}) {
   if (view === 'list') {
     return (
       <div className="space-y-2">
@@ -926,6 +1142,7 @@ function ProjectSkeleton({ view }: { view: 'grid' | 'list' }) {
 
             <div className="flex-1">
               <div className="h-3 w-32 animate-pulse rounded bg-white/[0.05]" />
+
               <div className="mt-2 h-2.5 w-52 animate-pulse rounded bg-white/[0.04]" />
             </div>
           </div>
@@ -936,20 +1153,24 @@ function ProjectSkeleton({ view }: { view: 'grid' | 'list' }) {
 
   return (
     <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-      {[1, 2, 3, 4, 5, 6].map((item) => (
-        <div
-          key={item}
-          className="overflow-hidden rounded-2xl border border-white/[0.06]"
-        >
-          <div className="aspect-[16/10] animate-pulse bg-white/[0.04]" />
+      {[1, 2, 3, 4, 5, 6].map(
+        (item) => (
+          <div
+            key={item}
+            className="overflow-hidden rounded-2xl border border-white/[0.06]"
+          >
+            <div className="aspect-[16/10] animate-pulse bg-white/[0.04]" />
 
-          <div className="space-y-3 p-5">
-            <div className="h-3 w-32 animate-pulse rounded bg-white/[0.05]" />
-            <div className="h-2.5 w-20 animate-pulse rounded bg-white/[0.04]" />
-            <div className="h-8 w-full animate-pulse rounded bg-white/[0.04]" />
+            <div className="space-y-3 p-5">
+              <div className="h-3 w-32 animate-pulse rounded bg-white/[0.05]" />
+
+              <div className="h-2.5 w-20 animate-pulse rounded bg-white/[0.04]" />
+
+              <div className="h-8 w-full animate-pulse rounded bg-white/[0.04]" />
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      )}
     </div>
   );
 }

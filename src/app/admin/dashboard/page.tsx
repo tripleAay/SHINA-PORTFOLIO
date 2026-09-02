@@ -4,23 +4,24 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  FiArrowUpRight,
-  FiBell,
-  FiBriefcase,
-  FiChevronRight,
-  FiFileText,
-  FiGrid,
+  FiArrowLeft,
+  FiCheckCircle,
+  FiEdit2,
+  FiExternalLink,
+  FiFolder,
+  FiImage,
   FiLogOut,
   FiMail,
-  FiMenu,
+  FiMessageSquare,
   FiMoon,
   FiPlus,
-  FiSettings,
+  FiRefreshCw,
   FiSun,
-  FiX,
+  FiTrash2,
+  FiUser,
 } from 'react-icons/fi';
 
-import { supabase } from '@/app/lib/supabase';
+import { createClient } from '@/app/lib/client';
 import { useTheme } from '@/app/contexts/ThemeContext';
 
 type Project = {
@@ -28,7 +29,9 @@ type Project = {
   title: string;
   description: string;
   image: string | null;
+  link: string | null;
   category: string | null;
+  technologies: string | null;
   featured: boolean;
   created_at: string;
 };
@@ -47,32 +50,76 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { lightMode, toggleTheme } = useTheme();
 
+  /*
+   * IMPORTANT:
+   * Do NOT create the Supabase client at module level.
+   *
+   * This prevents the Vercel/Next.js build error caused by:
+   *
+   * export const supabase = createClient();
+   *
+   * inside supabase.ts.
+   *
+   * useMemo keeps one browser client for this component.
+   */
+  const supabase = useMemo(() => createClient(), []);
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const [error, setError] = useState('');
+
+  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(
+    null
+  );
+
+  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
-    let mounted = true;
+    loadDashboard();
+  }, []);
 
-    async function loadDashboard() {
+  async function loadDashboard(showRefreshLoader = false) {
+    if (showRefreshLoader) {
+      setRefreshing(true);
+    } else {
       setLoading(true);
+    }
 
+    setError('');
+
+    try {
+      /*
+       * Check authentication first.
+       */
       const {
         data: { user },
+        error: userError,
       } = await supabase.auth.getUser();
+
+      if (userError) {
+        throw new Error(userError.message);
+      }
 
       if (!user) {
         router.replace('/admin/login');
         return;
       }
 
+      /*
+       * Load projects and messages at the same time.
+       */
       const [projectsResult, messagesResult] = await Promise.all([
         supabase
           .from('portfolio')
           .select(
-            'id, title, description, image, category, featured, created_at'
+            'id, title, description, image, link, category, technologies, featured, created_at'
           )
           .order('created_at', { ascending: false }),
 
@@ -81,787 +128,964 @@ export default function AdminDashboard() {
           .select(
             'id, name, email, subject, message, read, created_at'
           )
-          .order('created_at', { ascending: false })
-          .limit(5),
+          .order('created_at', { ascending: false }),
       ]);
 
-      if (!mounted) return;
-
-      if (!projectsResult.error) {
-        setProjects(projectsResult.data ?? []);
+      if (projectsResult.error) {
+        throw new Error(
+          `Could not load projects: ${projectsResult.error.message}`
+        );
       }
 
-      if (!messagesResult.error) {
-        setMessages(messagesResult.data ?? []);
+      if (messagesResult.error) {
+        throw new Error(
+          `Could not load messages: ${messagesResult.error.message}`
+        );
       }
 
+      setProjects((projectsResult.data || []) as Project[]);
+      setMessages((messagesResult.data || []) as Message[]);
+    } catch (err) {
+      console.error('Dashboard loading error:', err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Something went wrong while loading the dashboard.'
+      );
+    } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-
-    loadDashboard();
-
-    return () => {
-      mounted = false;
-    };
-  }, [router]);
-
-  const featuredProjects = useMemo(
-    () => projects.filter((project) => project.featured).length,
-    [projects]
-  );
-
-  const unreadMessages = useMemo(
-    () => messages.filter((message) => !message.read).length,
-    [messages]
-  );
+  }
 
   async function handleSignOut() {
     setSigningOut(true);
+    setError('');
 
-    await supabase.auth.signOut();
+    try {
+      const { error: signOutError } = await supabase.auth.signOut();
 
-    router.replace('/admin/login');
-    router.refresh();
+      if (signOutError) {
+        throw new Error(signOutError.message);
+      }
+
+      router.replace('/admin/login');
+      router.refresh();
+    } catch (err) {
+      console.error('Sign out error:', err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Could not sign out. Please try again.'
+      );
+
+      setSigningOut(false);
+    }
   }
 
-  const formatDate = (date: string) => {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(new Date(date));
-  };
+  async function handleDeleteProject(project: Project) {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${project.title}"?\n\nThis action cannot be undone.`
+    );
 
-  const truncate = (text: string, length = 70) => {
-    if (text.length <= length) return text;
-    return `${text.slice(0, length)}...`;
-  };
+    if (!confirmed) return;
 
-  const background = lightMode ? 'bg-[#F7F5F0]' : 'bg-[#09090B]';
-  const foreground = lightMode ? 'text-zinc-900' : 'text-white';
+    setDeletingProjectId(project.id);
+    setError('');
+
+    try {
+      /*
+       * Delete the database record first.
+       */
+      const { error: deleteError } = await supabase
+        .from('portfolio')
+        .delete()
+        .eq('id', project.id);
+
+      if (deleteError) {
+        throw new Error(deleteError.message);
+      }
+
+      /*
+       * Remove the project from the UI immediately.
+       */
+      setProjects((current) =>
+        current.filter((item) => item.id !== project.id)
+      );
+
+      /*
+       * If the project has an image, try to remove it from Storage too.
+       *
+       * This is intentionally non-blocking because the database record
+       * has already been successfully deleted.
+       */
+      if (project.image) {
+        const storagePath = getStoragePathFromUrl(project.image);
+
+        if (storagePath) {
+          await supabase.storage
+            .from('portfolio-images')
+            .remove([storagePath]);
+        }
+      }
+    } catch (err) {
+      console.error('Delete project error:', err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Could not delete the project.'
+      );
+    } finally {
+      setDeletingProjectId(null);
+    }
+  }
+
+  async function handleDeleteMessage(message: Message) {
+    const confirmed = window.confirm(
+      `Delete the message from ${message.name}?\n\nThis action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setDeletingMessageId(message.id);
+    setError('');
+
+    try {
+      const { error: deleteError } = await supabase
+        .from('messages')
+        .delete()
+        .eq('id', message.id);
+
+      if (deleteError) {
+        throw new Error(deleteError.message);
+      }
+
+      setMessages((current) =>
+        current.filter((item) => item.id !== message.id)
+      );
+    } catch (err) {
+      console.error('Delete message error:', err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Could not delete the message.'
+      );
+    } finally {
+      setDeletingMessageId(null);
+    }
+  }
+
+  async function handleMarkMessageAsRead(message: Message) {
+    if (message.read) return;
+
+    try {
+      const { error: updateError } = await supabase
+        .from('messages')
+        .update({ read: true })
+        .eq('id', message.id);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      setMessages((current) =>
+        current.map((item) =>
+          item.id === message.id
+            ? { ...item, read: true }
+            : item
+        )
+      );
+    } catch (err) {
+      console.error('Mark message as read error:', err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Could not update the message.'
+      );
+    }
+  }
+
+  function getStoragePathFromUrl(url: string) {
+    const marker =
+      '/storage/v1/object/public/portfolio-images/';
+
+    const index = url.indexOf(marker);
+
+    if (index === -1) {
+      return null;
+    }
+
+    return decodeURIComponent(
+      url.substring(index + marker.length)
+    );
+  }
+
+  const unreadMessages = messages.filter(
+    (message) => !message.read
+  ).length;
+
+  const featuredProjects = projects.filter(
+    (project) => project.featured
+  ).length;
+
+  const pageBackground = lightMode
+    ? 'bg-[#f7f4ee] text-zinc-900'
+    : 'bg-[#09090b] text-zinc-100';
+
+  const cardBackground = lightMode
+    ? 'bg-white border-zinc-200'
+    : 'bg-zinc-950/80 border-zinc-800';
+
+  const mutedText = lightMode
+    ? 'text-zinc-500'
+    : 'text-zinc-400';
+
+  const subtleText = lightMode
+    ? 'text-zinc-600'
+    : 'text-zinc-300';
+
+  const inputBackground = lightMode
+    ? 'bg-white border-zinc-200'
+    : 'bg-zinc-900 border-zinc-800';
+
+  if (loading) {
+    return (
+      <main
+        className={`min-h-screen flex items-center justify-center ${pageBackground}`}
+      >
+        <div className="flex flex-col items-center gap-4">
+          <FiRefreshCw className="w-6 h-6 animate-spin text-yellow-400" />
+
+          <p className={`text-sm ${mutedText}`}>
+            Loading dashboard...
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
-    <main
-      className={`min-h-screen ${background} ${foreground} transition-colors duration-500`}
-    >
-      {/* Mobile overlay */}
-      {mobileMenuOpen && (
-        <button
-          aria-label="Close menu"
-          onClick={() => setMobileMenuOpen(false)}
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[250px] flex-col border-r transition-transform duration-300 lg:translate-x-0 ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        } ${
-          lightMode
-            ? 'border-black/[0.07] bg-[#F2EFE8]'
-            : 'border-white/[0.07] bg-[#0D0D0F]'
-        }`}
-      >
-        {/* Logo */}
-        <div className="flex h-[76px] items-center border-b border-inherit px-6">
-          <Link
-            href="/admin"
-            className="flex items-center gap-3"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-yellow-400 text-xs font-bold text-black">
-              AA
-            </span>
-
-            <div>
-              <p className="text-sm font-semibold tracking-tight">
-                SHINA ADMIN
-              </p>
-              <p
-                className={`text-[10px] tracking-[0.18em] ${
-                  lightMode ? 'text-zinc-500' : 'text-zinc-600'
-                }`}
-              >
-                CONTROL CENTER
-              </p>
-            </div>
-          </Link>
-
-          <button
-            onClick={() => setMobileMenuOpen(false)}
-            className="ml-auto rounded-lg p-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-white lg:hidden"
-          >
-            <FiX size={19} />
-          </button>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 space-y-7 px-4 py-7">
-          <SidebarGroup label="Overview">
-            <SidebarLink
-              href="/admin/dashboard"
-              icon={<FiGrid size={17} />}
-              active
-              lightMode={lightMode}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Dashboard
-            </SidebarLink>
-          </SidebarGroup>
-
-          <SidebarGroup label="Content">
-            <SidebarLink
-              href="/admin/projects"
-              icon={<FiBriefcase size={17} />}
-              lightMode={lightMode}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Projects
-            </SidebarLink>
-
-            <SidebarLink
-              href="/admin/projects/new"
-              icon={<FiPlus size={17} />}
-              lightMode={lightMode}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Add Project
-            </SidebarLink>
-          </SidebarGroup>
-
-          <SidebarGroup label="Communication">
-            <SidebarLink
-              href="/admin/messages"
-              icon={<FiMail size={17} />}
-              lightMode={lightMode}
-              badge={unreadMessages > 0 ? unreadMessages : undefined}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Messages
-            </SidebarLink>
-          </SidebarGroup>
-
-          <SidebarGroup label="System">
-            <SidebarLink
-              href="/admin/settings"
-              icon={<FiSettings size={17} />}
-              lightMode={lightMode}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Settings
-            </SidebarLink>
-          </SidebarGroup>
-        </nav>
-
-        {/* Bottom links */}
+    <main className={`min-h-screen ${pageBackground}`}>
+      {/* Background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div
-          className={`space-y-1 border-t p-4 ${
-            lightMode ? 'border-black/[0.07]' : 'border-white/[0.07]'
+          className={`absolute inset-0 ${
+            lightMode
+              ? 'bg-[linear-gradient(rgba(0,0,0,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.025)_1px,transparent_1px)]'
+              : 'bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)]'
+          } bg-[size:48px_48px]`}
+        />
+
+        <div
+          className={`absolute top-[-250px] right-[-200px] w-[500px] h-[500px] rounded-full blur-[140px] ${
+            lightMode
+              ? 'bg-yellow-300/10'
+              : 'bg-yellow-400/5'
           }`}
-        >
-          <Link
-            href="/"
-            target="_blank"
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
-              lightMode
-                ? 'text-zinc-500 hover:bg-black/[0.04] hover:text-zinc-900'
-                : 'text-zinc-500 hover:bg-white/[0.04] hover:text-white'
-            }`}
-          >
-            <FiArrowUpRight size={17} />
-            View website
-          </Link>
+        />
+      </div>
 
-          <button
-            onClick={handleSignOut}
-            disabled={signingOut}
-            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition ${
-              lightMode
-                ? 'text-zinc-500 hover:bg-black/[0.04] hover:text-red-600'
-                : 'text-zinc-500 hover:bg-white/[0.04] hover:text-red-400'
-            }`}
-          >
-            <FiLogOut size={17} />
-            {signingOut ? 'Signing out...' : 'Sign out'}
-          </button>
-        </div>
-      </aside>
-
-      {/* Main area */}
-      <div className="lg:pl-[250px]">
+      <div className="relative z-10">
         {/* Header */}
         <header
-          className={`sticky top-0 z-30 flex h-[76px] items-center justify-between border-b px-5 backdrop-blur-xl sm:px-8 lg:px-10 ${
+          className={`sticky top-0 z-50 border-b backdrop-blur-xl ${
             lightMode
-              ? 'border-black/[0.07] bg-[#F7F5F0]/85'
-              : 'border-white/[0.07] bg-[#09090B]/85'
+              ? 'bg-[#f7f4ee]/85 border-zinc-200'
+              : 'bg-[#09090b]/85 border-zinc-800'
           }`}
         >
-          <button
-            onClick={() => setMobileMenuOpen(true)}
-            className="rounded-xl p-2.5 text-zinc-500 lg:hidden"
-          >
-            <FiMenu size={21} />
-          </button>
+          <div className="max-w-7xl mx-auto px-5 sm:px-8">
+            <div className="h-20 flex items-center justify-between">
+              {/* Brand */}
+              <Link
+                href="/admin/dashboard"
+                className="flex items-center gap-3 group"
+              >
+                <div className="w-10 h-10 rounded-full bg-yellow-400 text-black flex items-center justify-center font-bold text-sm transition-transform duration-300 group-hover:scale-105">
+                  AA
+                </div>
 
-          <div className="hidden lg:block">
-            <p
-              className={`text-xs uppercase tracking-[0.2em] ${
-                lightMode ? 'text-zinc-500' : 'text-zinc-600'
-              }`}
-            >
-              Dashboard
-            </p>
-          </div>
+                <div className="hidden sm:block">
+                  <p className="text-sm font-semibold">
+                    Admin Dashboard
+                  </p>
 
-          <div className="ml-auto flex items-center gap-2">
-            {/* Theme */}
-            <button
-              onClick={toggleTheme}
-              aria-label="Toggle theme"
-              className={`flex h-10 w-10 items-center justify-center rounded-xl border transition ${
-                lightMode
-                  ? 'border-black/[0.07] text-zinc-600 hover:bg-black/[0.04]'
-                  : 'border-white/[0.08] text-zinc-400 hover:bg-white/[0.05]'
-              }`}
-            >
-              {lightMode ? <FiMoon size={17} /> : <FiSun size={17} />}
-            </button>
+                  <p className={`text-xs ${mutedText}`}>
+                    Portfolio management
+                  </p>
+                </div>
+              </Link>
 
-            {/* Notifications */}
-            <Link
-              href="/admin/messages"
-              className={`relative flex h-10 w-10 items-center justify-center rounded-xl border transition ${
-                lightMode
-                  ? 'border-black/[0.07] text-zinc-600 hover:bg-black/[0.04]'
-                  : 'border-white/[0.08] text-zinc-400 hover:bg-white/[0.05]'
-              }`}
-            >
-              <FiBell size={17} />
-
-              {unreadMessages > 0 && (
-                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-yellow-400" />
-              )}
-            </Link>
-
-            {/* User */}
-            <div
-              className={`ml-1 hidden items-center gap-3 border-l pl-4 sm:flex ${
-                lightMode ? 'border-black/[0.07]' : 'border-white/[0.07]'
-              }`}
-            >
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-yellow-400 text-xs font-bold text-black">
-                AA
-              </div>
-
-              <div className="hidden md:block">
-                <p className="text-sm font-medium">Shina Adedokun</p>
-                <p
-                  className={`text-[11px] ${
-                    lightMode ? 'text-zinc-500' : 'text-zinc-600'
+              {/* Actions */}
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/"
+                  className={`hidden sm:flex items-center gap-2 px-3 py-2 rounded-full text-sm transition-colors ${
+                    lightMode
+                      ? 'hover:bg-zinc-100'
+                      : 'hover:bg-zinc-900'
                   }`}
                 >
-                  Administrator
-                </p>
+                  <FiExternalLink className="w-4 h-4" />
+                  View site
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  aria-label={
+                    lightMode
+                      ? 'Switch to dark mode'
+                      : 'Switch to light mode'
+                  }
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                    lightMode
+                      ? 'hover:bg-zinc-100'
+                      : 'hover:bg-zinc-900'
+                  }`}
+                >
+                  {lightMode ? (
+                    <FiMoon className="w-4 h-4" />
+                  ) : (
+                    <FiSun className="w-4 h-4" />
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  disabled={signingOut}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-400 text-black text-sm font-semibold hover:bg-yellow-300 transition-colors disabled:opacity-50"
+                >
+                  <FiLogOut className="w-4 h-4" />
+
+                  <span className="hidden sm:inline">
+                    {signingOut ? 'Signing out...' : 'Sign out'}
+                  </span>
+                </button>
               </div>
             </div>
           </div>
         </header>
 
         {/* Content */}
-        <section className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
-          {/* Intro */}
-          <div className="mb-9">
-            <p className="mb-2 text-sm font-medium text-yellow-500">
-              CONTROL CENTER
-            </p>
-
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              Good morning, Shina.
-            </h1>
-
-            <p
-              className={`mt-2 max-w-xl text-sm ${
-                lightMode ? 'text-zinc-500' : 'text-zinc-500'
-              }`}
-            >
-              Here&apos;s what&apos;s happening with your portfolio.
-            </p>
-          </div>
-
-          {/* Stats */}
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <StatCard
-              label="Projects"
-              value={projects.length}
-              description="Total portfolio projects"
-              icon={<FiBriefcase size={18} />}
-              lightMode={lightMode}
-              loading={loading}
-            />
-
-            <StatCard
-              label="Featured"
-              value={featuredProjects}
-              description="Projects highlighted"
-              icon={<FiFileText size={18} />}
-              lightMode={lightMode}
-              loading={loading}
-            />
-
-            <StatCard
-              label="Messages"
-              value={messages.length}
-              description={
-                unreadMessages > 0
-                  ? `${unreadMessages} unread`
-                  : 'No unread messages'
-              }
-              icon={<FiMail size={18} />}
-              lightMode={lightMode}
-              loading={loading}
-              accent={unreadMessages > 0}
-            />
-          </div>
-
-          {/* Main cards */}
-          <div className="mt-5 grid gap-5 xl:grid-cols-[1.35fr_1fr]">
-            {/* Recent projects */}
-            <DashboardCard lightMode={lightMode}>
-              <CardHeader
-                title="Recent projects"
-                href="/admin/projects"
-                lightMode={lightMode}
-              />
-
-              {loading ? (
-                <LoadingRows />
-              ) : projects.length === 0 ? (
-                <EmptyState
-                  title="No projects yet"
-                  description="Add your first project to your portfolio."
-                  href="/admin/projects/new"
-                  action="Add project"
-                  lightMode={lightMode}
-                />
-              ) : (
-                <div className="space-y-1">
-                  {projects.slice(0, 5).map((project) => (
-                    <Link
-                      key={project.id}
-                      href={`/admin/projects/${project.id}/edit`}
-                      className={`group flex items-center gap-3 rounded-xl p-3 transition ${
-                        lightMode
-                          ? 'hover:bg-black/[0.035]'
-                          : 'hover:bg-white/[0.035]'
-                      }`}
-                    >
-                      <div
-                        className={`h-12 w-12 shrink-0 overflow-hidden rounded-lg ${
-                          lightMode ? 'bg-[#E5E0D7]' : 'bg-white/[0.05]'
-                        }`}
-                      >
-                        {project.image ? (
-                          <img
-                            src={project.image}
-                            alt=""
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-zinc-500">
-                            <FiBriefcase size={17} />
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="truncate text-sm font-medium">
-                            {project.title}
-                          </p>
-
-                          {project.featured && (
-                            <span className="hidden rounded-full bg-yellow-400/10 px-2 py-0.5 text-[9px] font-medium uppercase tracking-wider text-yellow-500 sm:inline-flex">
-                              Featured
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="mt-1 flex items-center gap-2 text-[11px] text-zinc-500">
-                          <span>{project.category || 'Uncategorized'}</span>
-                          <span>·</span>
-                          <span>{formatDate(project.created_at)}</span>
-                        </div>
-                      </div>
-
-                      <FiChevronRight
-                        size={16}
-                        className="shrink-0 text-zinc-600 transition group-hover:translate-x-0.5 group-hover:text-yellow-400"
-                      />
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </DashboardCard>
-
-            {/* Recent messages */}
-            <DashboardCard lightMode={lightMode}>
-              <CardHeader
-                title="Recent messages"
-                href="/admin/messages"
-                lightMode={lightMode}
-                count={unreadMessages > 0 ? unreadMessages : undefined}
-              />
-
-              {loading ? (
-                <LoadingRows />
-              ) : messages.length === 0 ? (
-                <EmptyState
-                  title="Your inbox is clear"
-                  description="New contact form submissions will appear here."
-                  lightMode={lightMode}
-                />
-              ) : (
-                <div className="space-y-1">
-                  {messages.map((message) => (
-                    <Link
-                      key={message.id}
-                      href={`/admin/messages/${message.id}`}
-                      className={`group block rounded-xl p-3 transition ${
-                        lightMode
-                          ? 'hover:bg-black/[0.035]'
-                          : 'hover:bg-white/[0.035]'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="relative mt-1.5">
-                          <div className="h-8 w-8 rounded-full bg-yellow-400/10" />
-
-                          {!message.read && (
-                            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-yellow-400" />
-                          )}
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="truncate text-sm font-medium">
-                              {message.name}
-                            </p>
-
-                            <span className="shrink-0 text-[10px] text-zinc-600">
-                              {formatDate(message.created_at)}
-                            </span>
-                          </div>
-
-                          <p
-                            className={`mt-1 truncate text-xs ${
-                              lightMode ? 'text-zinc-500' : 'text-zinc-500'
-                            }`}
-                          >
-                            {message.subject || 'No subject'}
-                          </p>
-
-                          <p className="mt-1 truncate text-[11px] text-zinc-600">
-                            {truncate(message.message, 55)}
-                          </p>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </DashboardCard>
-          </div>
-
-          {/* Status */}
-          <div
-            className={`mt-5 flex flex-col justify-between gap-5 rounded-2xl border p-5 sm:flex-row sm:items-center sm:p-6 ${
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 py-10">
+          {/* Back */}
+          <Link
+            href="/"
+            className={`inline-flex items-center gap-2 text-sm mb-8 transition-colors ${
               lightMode
-                ? 'border-black/[0.07] bg-white/60'
-                : 'border-white/[0.07] bg-white/[0.025]'
+                ? 'text-zinc-500 hover:text-zinc-900'
+                : 'text-zinc-400 hover:text-white'
             }`}
           >
-            <div className="flex items-center gap-4">
-              <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-green-500/10">
-                <span className="absolute h-2.5 w-2.5 animate-ping rounded-full bg-green-400/60" />
-                <span className="relative h-2.5 w-2.5 rounded-full bg-green-400" />
+            <FiArrowLeft className="w-4 h-4" />
+            Back to portfolio
+          </Link>
+
+          {/* Heading */}
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 mb-10">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-yellow-500 font-semibold mb-3">
+                Control center
+              </p>
+
+              <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
+                Welcome back.
+              </h1>
+
+              <p className={`mt-3 max-w-xl ${mutedText}`}>
+                Manage your portfolio projects and keep track of
+                messages from visitors.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => loadDashboard(true)}
+              disabled={refreshing}
+              className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full border text-sm transition-colors disabled:opacity-50 ${inputBackground}`}
+            >
+              <FiRefreshCw
+                className={`w-4 h-4 ${
+                  refreshing ? 'animate-spin' : ''
+                }`}
+              />
+
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div
+              className={`mb-8 rounded-2xl border px-5 py-4 ${
+                lightMode
+                  ? 'bg-red-50 border-red-200 text-red-700'
+                  : 'bg-red-950/30 border-red-900 text-red-300'
+              }`}
+            >
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Stats */}
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            <div
+              className={`rounded-2xl border p-5 ${cardBackground}`}
+            >
+              <div className="flex items-center justify-between mb-5">
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                    lightMode
+                      ? 'bg-zinc-100'
+                      : 'bg-zinc-900'
+                  }`}
+                >
+                  <FiFolder className="w-5 h-5" />
+                </div>
+
+                <span className="text-xs text-yellow-500 font-medium">
+                  Projects
+                </span>
               </div>
 
-              <div>
-                <p className="text-sm font-medium">Portfolio is live</p>
-                <p className="mt-1 text-xs text-zinc-500">
-                  Your website is currently online and accepting visitors.
-                </p>
+              <p className="text-3xl font-semibold">
+                {projects.length}
+              </p>
+
+              <p className={`text-sm mt-1 ${mutedText}`}>
+                Total projects
+              </p>
+            </div>
+
+            <div
+              className={`rounded-2xl border p-5 ${cardBackground}`}
+            >
+              <div className="flex items-center justify-between mb-5">
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                    lightMode
+                      ? 'bg-zinc-100'
+                      : 'bg-zinc-900'
+                  }`}
+                >
+                  <FiCheckCircle className="w-5 h-5" />
+                </div>
+
+                <span className="text-xs text-yellow-500 font-medium">
+                  Featured
+                </span>
+              </div>
+
+              <p className="text-3xl font-semibold">
+                {featuredProjects}
+              </p>
+
+              <p className={`text-sm mt-1 ${mutedText}`}>
+                Featured projects
+              </p>
+            </div>
+
+            <div
+              className={`rounded-2xl border p-5 ${cardBackground}`}
+            >
+              <div className="flex items-center justify-between mb-5">
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                    lightMode
+                      ? 'bg-zinc-100'
+                      : 'bg-zinc-900'
+                  }`}
+                >
+                  <FiMail className="w-5 h-5" />
+                </div>
+
+                <span className="text-xs text-yellow-500 font-medium">
+                  Messages
+                </span>
+              </div>
+
+              <p className="text-3xl font-semibold">
+                {messages.length}
+              </p>
+
+              <p className={`text-sm mt-1 ${mutedText}`}>
+                Total messages
+              </p>
+            </div>
+
+            <div
+              className={`rounded-2xl border p-5 ${cardBackground}`}
+            >
+              <div className="flex items-center justify-between mb-5">
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                    lightMode
+                      ? 'bg-zinc-100'
+                      : 'bg-zinc-900'
+                  }`}
+                >
+                  <FiMessageSquare className="w-5 h-5" />
+                </div>
+
+                <span className="text-xs text-yellow-500 font-medium">
+                  Unread
+                </span>
+              </div>
+
+              <p className="text-3xl font-semibold">
+                {unreadMessages}
+              </p>
+
+              <p className={`text-sm mt-1 ${mutedText}`}>
+                Unread messages
+              </p>
+            </div>
+          </section>
+
+          {/* Quick actions */}
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+            <Link
+              href="/admin/projects/new"
+              className={`group rounded-2xl border p-6 transition-all duration-300 ${
+                lightMode
+                  ? 'bg-white border-zinc-200 hover:border-yellow-400 hover:shadow-lg'
+                  : 'bg-zinc-950/80 border-zinc-800 hover:border-yellow-400/50'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="w-11 h-11 rounded-xl bg-yellow-400 text-black flex items-center justify-center mb-5">
+                    <FiPlus className="w-5 h-5" />
+                  </div>
+
+                  <h2 className="font-semibold text-lg">
+                    Add new project
+                  </h2>
+
+                  <p className={`text-sm mt-2 ${mutedText}`}>
+                    Create a portfolio project with images,
+                    technologies, links and featured status.
+                  </p>
+                </div>
+
+                <FiExternalLink
+                  className={`w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1 ${mutedText}`}
+                />
+              </div>
+            </Link>
+
+            <Link
+              href="/admin/projects"
+              className={`group rounded-2xl border p-6 transition-all duration-300 ${
+                lightMode
+                  ? 'bg-white border-zinc-200 hover:border-yellow-400 hover:shadow-lg'
+                  : 'bg-zinc-950/80 border-zinc-800 hover:border-yellow-400/50'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center mb-5 ${
+                      lightMode
+                        ? 'bg-zinc-100'
+                        : 'bg-zinc-900'
+                    }`}
+                  >
+                    <FiFolder className="w-5 h-5" />
+                  </div>
+
+                  <h2 className="font-semibold text-lg">
+                    Manage projects
+                  </h2>
+
+                  <p className={`text-sm mt-2 ${mutedText}`}>
+                    View, edit and remove existing portfolio
+                    projects.
+                  </p>
+                </div>
+
+                <FiExternalLink
+                  className={`w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1 ${mutedText}`}
+                />
+              </div>
+            </Link>
+          </section>
+
+          {/* Projects */}
+          <section
+            className={`rounded-2xl border overflow-hidden mb-10 ${cardBackground}`}
+          >
+            <div
+              className={`px-6 py-5 border-b ${
+                lightMode
+                  ? 'border-zinc-200'
+                  : 'border-zinc-800'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-semibold text-lg">
+                    Recent projects
+                  </h2>
+
+                  <p className={`text-sm mt-1 ${mutedText}`}>
+                    Your latest portfolio work.
+                  </p>
+                </div>
+
+                <Link
+                  href="/admin/projects"
+                  className="text-sm text-yellow-500 hover:text-yellow-400 transition-colors"
+                >
+                  View all
+                </Link>
               </div>
             </div>
 
-            <Link
-              href="/"
-              target="_blank"
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-yellow-400/30 px-4 py-2.5 text-xs font-medium text-yellow-500 transition hover:bg-yellow-400/10"
-            >
-              View website
-              <FiArrowUpRight size={14} />
-            </Link>
-          </div>
-        </section>
-      </div>
-    </main>
-  );
-}
+            {projects.length === 0 ? (
+              <div className="px-6 py-14 text-center">
+                <FiFolder
+                  className={`w-8 h-8 mx-auto mb-4 ${mutedText}`}
+                />
 
-/* -------------------------------------------------------------------------- */
-/* Components                                                                 */
-/* -------------------------------------------------------------------------- */
+                <h3 className="font-medium">
+                  No projects yet
+                </h3>
 
-function SidebarGroup({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <p className="mb-2 px-3 text-[10px] font-medium uppercase tracking-[0.18em] text-zinc-600">
-        {label}
-      </p>
+                <p className={`text-sm mt-2 ${mutedText}`}>
+                  Add your first portfolio project.
+                </p>
 
-      <div className="space-y-1">{children}</div>
-    </div>
-  );
-}
+                <Link
+                  href="/admin/projects/new"
+                  className="inline-flex items-center gap-2 mt-5 px-4 py-2.5 rounded-full bg-yellow-400 text-black text-sm font-semibold hover:bg-yellow-300 transition-colors"
+                >
+                  <FiPlus className="w-4 h-4" />
+                  Add project
+                </Link>
+              </div>
+            ) : (
+              <div className="divide-y divide-zinc-800/60">
+                {projects.slice(0, 5).map((project) => (
+                  <div
+                    key={project.id}
+                    className={`px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-5 ${
+                      lightMode
+                        ? 'border-zinc-200'
+                        : ''
+                    }`}
+                  >
+                    {/* Image */}
+                    <div
+                      className={`w-full sm:w-24 h-20 rounded-xl overflow-hidden shrink-0 flex items-center justify-center ${
+                        lightMode
+                          ? 'bg-zinc-100'
+                          : 'bg-zinc-900'
+                      }`}
+                    >
+                      {project.image ? (
+                        <img
+                          src={project.image}
+                          alt={project.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <FiImage
+                          className={`w-6 h-6 ${mutedText}`}
+                        />
+                      )}
+                    </div>
 
-function SidebarLink({
-  href,
-  icon,
-  children,
-  active = false,
-  badge,
-  lightMode,
-  onClick,
-}: {
-  href: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-  active?: boolean;
-  badge?: number;
-  lightMode: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
-        active
-          ? 'bg-yellow-400 text-black'
-          : lightMode
-            ? 'text-zinc-500 hover:bg-black/[0.04] hover:text-zinc-900'
-            : 'text-zinc-500 hover:bg-white/[0.04] hover:text-white'
-      }`}
-    >
-      {icon}
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-medium truncate">
+                          {project.title}
+                        </h3>
 
-      <span className="flex-1">{children}</span>
+                        {project.featured && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-400/10 text-yellow-500 text-[11px] font-medium">
+                            <FiCheckCircle className="w-3 h-3" />
+                            Featured
+                          </span>
+                        )}
+                      </div>
 
-      {badge !== undefined && (
-        <span
-          className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${
-            active
-              ? 'bg-black/10 text-black'
-              : 'bg-yellow-400/10 text-yellow-500'
-          }`}
-        >
-          {badge}
-        </span>
-      )}
-    </Link>
-  );
-}
+                      {project.category && (
+                        <p
+                          className={`text-xs mt-1 ${mutedText}`}
+                        >
+                          {project.category}
+                        </p>
+                      )}
 
-function StatCard({
-  label,
-  value,
-  description,
-  icon,
-  lightMode,
-  loading,
-  accent = false,
-}: {
-  label: string;
-  value: number;
-  description: string;
-  icon: React.ReactNode;
-  lightMode: boolean;
-  loading: boolean;
-  accent?: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-2xl border p-5 transition ${
-        lightMode
-          ? 'border-black/[0.07] bg-white/60 hover:bg-white'
-          : 'border-white/[0.07] bg-white/[0.025] hover:bg-white/[0.04]'
-      }`}
-    >
-      <div className="flex items-center justify-between">
-        <span
-          className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-            accent
-              ? 'bg-yellow-400/10 text-yellow-500'
-              : lightMode
-                ? 'bg-black/[0.04] text-zinc-500'
-                : 'bg-white/[0.05] text-zinc-500'
-          }`}
-        >
-          {icon}
-        </span>
+                      <p
+                        className={`text-sm mt-2 line-clamp-2 ${mutedText}`}
+                      >
+                        {project.description}
+                      </p>
+                    </div>
 
-        {accent && (
-          <span className="h-2 w-2 animate-pulse rounded-full bg-yellow-400" />
-        )}
-      </div>
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/admin/projects/${project.id}/edit`}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
+                          lightMode
+                            ? 'hover:bg-zinc-100'
+                            : 'hover:bg-zinc-900'
+                        }`}
+                        title="Edit project"
+                      >
+                        <FiEdit2 className="w-4 h-4" />
+                      </Link>
 
-      {loading ? (
-        <div className="mt-6">
-          <div className="h-8 w-16 animate-pulse rounded-lg bg-zinc-500/10" />
-          <div className="mt-2 h-3 w-28 animate-pulse rounded bg-zinc-500/10" />
-        </div>
-      ) : (
-        <>
-          <p className="mt-6 text-3xl font-semibold tracking-tight">
-            {value}
-          </p>
+                      {project.link && (
+                        <a
+                          href={project.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
+                            lightMode
+                              ? 'hover:bg-zinc-100'
+                              : 'hover:bg-zinc-900'
+                          }`}
+                          title="Open project"
+                        >
+                          <FiExternalLink className="w-4 h-4" />
+                        </a>
+                      )}
 
-          <div className="mt-1 flex items-center justify-between gap-3">
-            <p className="text-xs text-zinc-500">{label}</p>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleDeleteProject(project)
+                        }
+                        disabled={
+                          deletingProjectId === project.id
+                        }
+                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 ${
+                          lightMode
+                            ? 'hover:bg-red-50 hover:text-red-600'
+                            : 'hover:bg-red-950/40 hover:text-red-400'
+                        }`}
+                        title="Delete project"
+                      >
+                        {deletingProjectId === project.id ? (
+                          <FiRefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <FiTrash2 className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
 
-            <p
-              className={`text-[10px] ${
-                accent ? 'text-yellow-500' : 'text-zinc-600'
+          {/* Messages */}
+          <section
+            className={`rounded-2xl border overflow-hidden ${cardBackground}`}
+          >
+            <div
+              className={`px-6 py-5 border-b ${
+                lightMode
+                  ? 'border-zinc-200'
+                  : 'border-zinc-800'
               }`}
             >
-              {description}
-            </p>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-semibold text-lg">
+                    Recent messages
+                  </h2>
 
-function DashboardCard({
-  children,
-  lightMode,
-}: {
-  children: React.ReactNode;
-  lightMode: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-2xl border p-4 sm:p-5 ${
-        lightMode
-          ? 'border-black/[0.07] bg-white/60'
-          : 'border-white/[0.07] bg-white/[0.025]'
-      }`}
-    >
-      {children}
-    </div>
-  );
-}
+                  <p className={`text-sm mt-1 ${mutedText}`}>
+                    Messages submitted through your contact form.
+                  </p>
+                </div>
 
-function CardHeader({
-  title,
-  href,
-  lightMode,
-  count,
-}: {
-  title: string;
-  href: string;
-  lightMode: boolean;
-  count?: number;
-}) {
-  return (
-    <div className="mb-3 flex items-center justify-between px-2">
-      <div className="flex items-center gap-2">
-        <h2 className="text-sm font-semibold">{title}</h2>
+                {unreadMessages > 0 && (
+                  <span className="px-2.5 py-1 rounded-full bg-yellow-400 text-black text-xs font-semibold">
+                    {unreadMessages} unread
+                  </span>
+                )}
+              </div>
+            </div>
 
-        {count !== undefined && (
-          <span className="rounded-full bg-yellow-400/10 px-2 py-0.5 text-[9px] font-medium text-yellow-500">
-            {count} new
-          </span>
-        )}
-      </div>
+            {messages.length === 0 ? (
+              <div className="px-6 py-14 text-center">
+                <FiMail
+                  className={`w-8 h-8 mx-auto mb-4 ${mutedText}`}
+                />
 
-      <Link
-        href={href}
-        className={`text-[11px] transition ${
-          lightMode
-            ? 'text-zinc-500 hover:text-zinc-900'
-            : 'text-zinc-500 hover:text-white'
-        }`}
-      >
-        View all →
-      </Link>
-    </div>
-  );
-}
+                <h3 className="font-medium">
+                  No messages yet
+                </h3>
 
-function LoadingRows() {
-  return (
-    <div className="space-y-2 p-2">
-      {[1, 2, 3].map((item) => (
-        <div
-          key={item}
-          className="flex items-center gap-3 rounded-xl p-3"
-        >
-          <div className="h-12 w-12 animate-pulse rounded-lg bg-zinc-500/10" />
+                <p className={`text-sm mt-2 ${mutedText}`}>
+                  Contact form submissions will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-zinc-800/60">
+                {messages.slice(0, 8).map((message) => (
+                  <div
+                    key={message.id}
+                    className={`px-6 py-5 ${
+                      !message.read
+                        ? lightMode
+                          ? 'bg-yellow-50/50'
+                          : 'bg-yellow-400/[0.03]'
+                        : ''
+                    }`}
+                  >
+                    <div className="flex flex-col lg:flex-row lg:items-start gap-5">
+                      {/* Avatar */}
+                      <div
+                        className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center ${
+                          message.read
+                            ? lightMode
+                              ? 'bg-zinc-100'
+                              : 'bg-zinc-900'
+                            : 'bg-yellow-400 text-black'
+                        }`}
+                      >
+                        <FiUser className="w-4 h-4" />
+                      </div>
 
-          <div className="flex-1">
-            <div className="h-3 w-32 animate-pulse rounded bg-zinc-500/10" />
-            <div className="mt-2 h-2.5 w-24 animate-pulse rounded bg-zinc-500/10" />
-          </div>
+                      {/* Message */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-medium">
+                            {message.name}
+                          </h3>
+
+                          {!message.read && (
+                            <span className="w-2 h-2 rounded-full bg-yellow-400" />
+                          )}
+                        </div>
+
+                        <a
+                          href={`mailto:${message.email}`}
+                          className="text-sm text-yellow-500 hover:text-yellow-400 transition-colors"
+                        >
+                          {message.email}
+                        </a>
+
+                        {message.subject && (
+                          <p className="font-medium text-sm mt-3">
+                            {message.subject}
+                          </p>
+                        )}
+
+                        <p
+                          className={`text-sm mt-2 whitespace-pre-wrap leading-relaxed ${subtleText}`}
+                        >
+                          {message.message}
+                        </p>
+
+                        <p
+                          className={`text-xs mt-4 ${mutedText}`}
+                        >
+                          {new Date(
+                            message.created_at
+                          ).toLocaleString()}
+                        </p>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {!message.read && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleMarkMessageAsRead(
+                                message
+                              )
+                            }
+                            className={`px-3 py-2 rounded-full text-xs font-medium transition-colors ${
+                              lightMode
+                                ? 'hover:bg-zinc-100'
+                                : 'hover:bg-zinc-900'
+                            }`}
+                          >
+                            Mark read
+                          </button>
+                        )}
+
+                        <a
+                          href={`mailto:${message.email}`}
+                          className="w-9 h-9 rounded-full flex items-center justify-center bg-yellow-400 text-black hover:bg-yellow-300 transition-colors"
+                          title="Reply by email"
+                        >
+                          <FiMail className="w-4 h-4" />
+                        </a>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleDeleteMessage(message)
+                          }
+                          disabled={
+                            deletingMessageId === message.id
+                          }
+                          className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 ${
+                            lightMode
+                              ? 'hover:bg-red-50 hover:text-red-600'
+                              : 'hover:bg-red-950/40 hover:text-red-400'
+                          }`}
+                          title="Delete message"
+                        >
+                          {deletingMessageId === message.id ? (
+                            <FiRefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <FiTrash2 className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Footer */}
+          <footer
+            className={`mt-12 pt-8 border-t ${
+              lightMode
+                ? 'border-zinc-200'
+                : 'border-zinc-800'
+            }`}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <p className={`text-xs ${mutedText}`}>
+                Admin dashboard · Shina Adedokun
+              </p>
+
+              <div className="flex items-center gap-2 text-xs">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75 animate-ping" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+                </span>
+
+                <span className={mutedText}>
+                  System operational
+                </span>
+              </div>
+            </div>
+          </footer>
         </div>
-      ))}
-    </div>
-  );
-}
-
-function EmptyState({
-  title,
-  description,
-  href,
-  action,
-  lightMode,
-}: {
-  title: string;
-  description: string;
-  href?: string;
-  action?: string;
-  lightMode: boolean;
-}) {
-  return (
-    <div className="flex min-h-[190px] flex-col items-center justify-center px-5 text-center">
-      <p className="text-sm font-medium">{title}</p>
-
-      <p className="mt-1 max-w-xs text-xs leading-5 text-zinc-500">
-        {description}
-      </p>
-
-      {href && action && (
-        <Link
-          href={href}
-          className={`mt-5 rounded-xl px-4 py-2.5 text-xs font-medium transition ${
-            lightMode
-              ? 'bg-zinc-900 text-white hover:bg-zinc-800'
-              : 'bg-white text-black hover:bg-zinc-200'
-          }`}
-        >
-          {action}
-        </Link>
-      )}
-    </div>
+      </div>
+    </main>
   );
 }

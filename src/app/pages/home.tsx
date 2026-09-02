@@ -1,6 +1,7 @@
 import Header from '../components/header';
 import Hero from '../components/hero';
 import About from '../components/about';
+import AboutJourney from '../components/aboutJourney';
 import SkillsSection from '../components/skillsSection';
 import Portfolio from '../components/portfolio';
 import ContactForm from '../components/contactForm';
@@ -29,6 +30,7 @@ export default function Home() {
           <Hero />
         </div>
         <About />
+        <AboutJourney />
         <SkillsSection/>
         <Portfolio />
         <ContactForm />

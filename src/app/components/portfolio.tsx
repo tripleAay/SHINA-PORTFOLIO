@@ -3,7 +3,6 @@
 import React, {
   useContext,
   useEffect,
-  useMemo,
   useState,
 } from 'react';
 import { ThemeContext } from '../contexts/ThemeContext';
@@ -36,25 +35,6 @@ const Portfolio: React.FC = () => {
   const { lightMode } =
     useContext(ThemeContext);
 
-  /*
-   * IMPORTANT:
-   *
-   * Do NOT use:
-   *
-   * import { supabase } from '../lib/supabase';
-   *
-   * The old supabase.ts created a client at
-   * module evaluation time, which caused the
-   * Vercel production build to fail.
-   *
-   * Create the browser client inside this
-   * client component instead.
-   */
-  const supabase = useMemo(
-    () => createClient(),
-    []
-  );
-
   const [projects, setProjects] =
     useState<PortfolioProject[]>([]);
 
@@ -74,6 +54,19 @@ const Portfolio: React.FC = () => {
    * =========================================
    * LOAD PROJECTS FROM SUPABASE
    * =========================================
+   *
+   * IMPORTANT:
+   *
+   * Do NOT create the Supabase client during
+   * component rendering.
+   *
+   * We create it inside useEffect so that the
+   * browser client is only initialized after
+   * this component has mounted in the browser.
+   *
+   * This prevents the Vercel build/prerender
+   * from trying to initialize the browser
+   * Supabase client.
    */
   useEffect(() => {
     let cancelled = false;
@@ -83,6 +76,8 @@ const Portfolio: React.FC = () => {
       setError('');
 
       try {
+        const supabase = createClient();
+
         const {
           data,
           error: supabaseError,
@@ -108,9 +103,21 @@ const Portfolio: React.FC = () => {
           );
         }
 
+        /*
+         * Normalize the images field.
+         *
+         * New projects use:
+         * images: [...]
+         *
+         * Older projects may only have:
+         * image: '...'
+         *
+         * This keeps both formats working.
+         */
         const normalizedProjects =
           (data ?? []).map((project) => ({
             ...project,
+
             images: Array.isArray(
               project.images
             )
@@ -148,35 +155,30 @@ const Portfolio: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [supabase]);
+  }, []);
 
   /*
    * =========================================
    * BUILD CATEGORY LIST
    * =========================================
    */
-  const categories = useMemo(() => {
-    const uniqueCategories =
-      Array.from(
-        new Set(
-          projects
-            .map((project) =>
-              project.category?.trim()
-            )
-            .filter(
-              (
-                category
-              ): category is string =>
-                Boolean(category)
-            )
-        )
-      );
-
-    return [
-      'All',
-      ...uniqueCategories,
-    ];
-  }, [projects]);
+  const categories = [
+    'All',
+    ...Array.from(
+      new Set(
+        projects
+          .map((project) =>
+            project.category?.trim()
+          )
+          .filter(
+            (
+              category
+            ): category is string =>
+              Boolean(category)
+          )
+      )
+    ),
+  ];
 
   /*
    * =========================================
@@ -184,22 +186,13 @@ const Portfolio: React.FC = () => {
    * =========================================
    */
   const filteredProjects =
-    useMemo(() => {
-      if (
-        selectedCategory === 'All'
-      ) {
-        return projects;
-      }
-
-      return projects.filter(
-        (project) =>
-          project.category?.trim() ===
-          selectedCategory
-      );
-    }, [
-      projects,
-      selectedCategory,
-    ]);
+    selectedCategory === 'All'
+      ? projects
+      : projects.filter(
+          (project) =>
+            project.category?.trim() ===
+            selectedCategory
+        );
 
   /*
    * =========================================
@@ -697,9 +690,7 @@ const Portfolio: React.FC = () => {
                                   technology
                                 ) => (
                                   <span
-                                    key={
-                                      technology
-                                    }
+                                    key={`${project.id}-${technology}`}
                                     className={`rounded-full px-2 py-1 text-[8px] font-medium uppercase tracking-[0.12em] ${
                                       lightMode
                                         ? 'bg-black/[0.035] text-gray-500'

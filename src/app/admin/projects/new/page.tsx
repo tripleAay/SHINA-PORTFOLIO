@@ -4,6 +4,7 @@ import {
   ChangeEvent,
   FormEvent,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 import Link from 'next/link';
@@ -11,7 +12,6 @@ import { useRouter } from 'next/navigation';
 import {
   FiArrowLeft,
   FiCheck,
-  FiImage,
   FiLoader,
   FiMoon,
   FiSun,
@@ -19,7 +19,7 @@ import {
   FiX,
 } from 'react-icons/fi';
 
-import { supabase } from '@/app/lib/supabase';
+import { createClient } from '@/app/lib/client';
 import { useTheme } from '@/app/contexts/ThemeContext';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -43,17 +43,36 @@ export default function NewProjectPage() {
   const router = useRouter();
   const { lightMode, toggleTheme } = useTheme();
 
+  /*
+   * IMPORTANT:
+   * Do NOT import a module-level Supabase instance.
+   *
+   * The old code used:
+   *
+   * import { supabase } from '@/app/lib/supabase';
+   *
+   * That caused Vercel to evaluate createClient()
+   * during the build and fail.
+   *
+   * We create the browser client here instead.
+   */
+  const supabase = useMemo(() => createClient(), []);
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('Web Development');
-  const [technologies, setTechnologies] = useState('');
+  const [category, setCategory] =
+    useState('Web Development');
+  const [technologies, setTechnologies] =
+    useState('');
   const [link, setLink] = useState('');
   const [featured, setFeatured] = useState(false);
 
-  const [images, setImages] = useState<SelectedImage[]>([]);
+  const [images, setImages] =
+    useState<SelectedImage[]>([]);
 
   const [loading, setLoading] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [checkingAuth, setCheckingAuth] =
+    useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -62,21 +81,71 @@ export default function NewProjectPage() {
   /* ------------------------------------------------------------------------ */
 
   useEffect(() => {
+    let cancelled = false;
+
     async function checkAuth() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
 
-      if (!user) {
-        router.replace('/admin/login');
-        return;
+        if (cancelled) return;
+
+        if (authError) {
+          console.error(
+            'Authentication check failed:',
+            authError
+          );
+
+          setError(
+            'Unable to verify your session. Please log in again.'
+          );
+          setCheckingAuth(false);
+          return;
+        }
+
+        if (!user) {
+          router.replace('/admin/login');
+          return;
+        }
+
+        setCheckingAuth(false);
+      } catch (authError) {
+        if (cancelled) return;
+
+        console.error(
+          'Authentication check failed:',
+          authError
+        );
+
+        setError(
+          'Unable to verify your session. Please log in again.'
+        );
+        setCheckingAuth(false);
       }
-
-      setCheckingAuth(false);
     }
 
     checkAuth();
-  }, [router]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router, supabase]);
+
+  /* ------------------------------------------------------------------------ */
+  /* Cleanup previews when page unmounts                                      */
+  /* ------------------------------------------------------------------------ */
+
+  useEffect(() => {
+    return () => {
+      images.forEach((image) => {
+        URL.revokeObjectURL(image.preview);
+      });
+    };
+    // We intentionally only want cleanup when this page unmounts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* ------------------------------------------------------------------------ */
   /* Image selection                                                          */
@@ -85,17 +154,31 @@ export default function NewProjectPage() {
   function handleImageChange(
     event: ChangeEvent<HTMLInputElement>
   ) {
-    const files = Array.from(event.target.files || []);
+    const files = Array.from(
+      event.target.files || []
+    );
 
     if (!files.length) return;
 
     setError('');
 
-    const remainingSlots = MAX_IMAGES - images.length;
+    const remainingSlots =
+      MAX_IMAGES - images.length;
+
+    if (remainingSlots <= 0) {
+      setError(
+        `A project can have a maximum of ${MAX_IMAGES} images.`
+      );
+
+      event.target.value = '';
+      return;
+    }
 
     if (files.length > remainingSlots) {
       setError(
-        `You can add up to ${MAX_IMAGES} images per project.`
+        `You can only add ${remainingSlots} more image${
+          remainingSlots === 1 ? '' : 's'
+        }.`
       );
 
       event.target.value = '';
@@ -125,21 +208,114 @@ export default function NewProjectPage() {
       });
     }
 
-    setImages((current) => [...current, ...validImages]);
+    setImages((current) => [
+      ...current,
+      ...validImages,
+    ]);
 
     event.target.value = '';
   }
+
+  /* ------------------------------------------------------------------------ */
+  /* Remove image                                                             */
+  /* ------------------------------------------------------------------------ */
 
   function removeImage(index: number) {
     setImages((current) => {
       const imageToRemove = current[index];
 
       if (imageToRemove) {
-        URL.revokeObjectURL(imageToRemove.preview);
+        URL.revokeObjectURL(
+          imageToRemove.preview
+        );
       }
 
-      return current.filter((_, imageIndex) => imageIndex !== index);
+      return current.filter(
+        (_, imageIndex) =>
+          imageIndex !== index
+      );
     });
+  }
+
+  /* ------------------------------------------------------------------------ */
+  /* Upload images                                                            */
+  /* ------------------------------------------------------------------------ */
+
+  async function uploadImages(
+    selectedImages: SelectedImage[]
+  ) {
+    const imageUrls: string[] = [];
+    const uploadedFilePaths: string[] = [];
+
+    try {
+      for (const selectedImage of selectedImages) {
+        const extension =
+          selectedImage.file.name
+            .split('.')
+            .pop()
+            ?.toLowerCase() || 'jpg';
+
+        const fileName = `${
+          crypto.randomUUID()
+        }.${extension}`;
+
+        const filePath =
+          `projects/${fileName}`;
+
+        const {
+          error: uploadError,
+        } = await supabase.storage
+          .from('portfolio-images')
+          .upload(
+            filePath,
+            selectedImage.file,
+            {
+              cacheControl: '3600',
+              upsert: false,
+              contentType:
+                selectedImage.file.type,
+            }
+          );
+
+        if (uploadError) {
+          throw new Error(
+            `Image upload failed: ${uploadError.message}`
+          );
+        }
+
+        uploadedFilePaths.push(filePath);
+
+        const {
+          data: publicUrlData,
+        } = supabase.storage
+          .from('portfolio-images')
+          .getPublicUrl(filePath);
+
+        imageUrls.push(
+          publicUrlData.publicUrl
+        );
+      }
+
+      return {
+        urls: imageUrls,
+        paths: uploadedFilePaths,
+      };
+    } catch (uploadError) {
+      /*
+       * If one upload fails after previous
+       * uploads succeeded, remove the files
+       * that were already uploaded.
+       */
+      if (uploadedFilePaths.length > 0) {
+        await supabase.storage
+          .from('portfolio-images')
+          .remove(
+            uploadedFilePaths
+          );
+      }
+
+      throw uploadError;
+    }
   }
 
   /* ------------------------------------------------------------------------ */
@@ -155,80 +331,68 @@ export default function NewProjectPage() {
     setSuccess('');
 
     if (!title.trim()) {
-      setError('Please enter a project title.');
+      setError(
+        'Please enter a project title.'
+      );
       return;
     }
 
     if (!description.trim()) {
-      setError('Please enter a project description.');
+      setError(
+        'Please enter a project description.'
+      );
+      return;
+    }
+
+    if (images.length > MAX_IMAGES) {
+      setError(
+        `A project can have a maximum of ${MAX_IMAGES} images.`
+      );
       return;
     }
 
     setLoading(true);
 
-    const uploadedFilePaths: string[] = [];
+    let uploadedFilePaths: string[] = [];
 
     try {
+      /* -------------------------------------------------------------------- */
+      /* Verify authentication                                                */
+      /* -------------------------------------------------------------------- */
+
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser();
+
+      if (authError) {
+        throw new Error(
+          `Authentication failed: ${authError.message}`
+        );
+      }
 
       if (!user) {
         router.replace('/admin/login');
         return;
       }
 
-      const imageUrls: string[] = [];
-
       /* -------------------------------------------------------------------- */
-      /* Upload all selected images                                           */
+      /* Upload selected images                                               */
       /* -------------------------------------------------------------------- */
 
-      for (const selectedImage of images) {
-        const extension =
-          selectedImage.file.name
-            .split('.')
-            .pop()
-            ?.toLowerCase() || 'jpg';
+      let imageUrls: string[] = [];
 
-        const fileName =
-          `${crypto.randomUUID()}.${extension}`;
+      if (images.length > 0) {
+        const uploaded =
+          await uploadImages(images);
 
-        const filePath = `projects/${fileName}`;
-
-        const { error: uploadError } =
-          await supabase.storage
-            .from('portfolio-images')
-            .upload(
-              filePath,
-              selectedImage.file,
-              {
-                cacheControl: '3600',
-                upsert: false,
-                contentType: selectedImage.file.type,
-              }
-            );
-
-        if (uploadError) {
-          throw new Error(
-            `Image upload failed: ${uploadError.message}`
-          );
-        }
-
-        uploadedFilePaths.push(filePath);
-
-        const { data: publicUrlData } =
-          supabase.storage
-            .from('portfolio-images')
-            .getPublicUrl(filePath);
-
-        imageUrls.push(
-          publicUrlData.publicUrl
-        );
+        imageUrls = uploaded.urls;
+        uploadedFilePaths =
+          uploaded.paths;
       }
 
       /* -------------------------------------------------------------------- */
-      /* Save project                                                         */
+      /* Primary image                                                        */
       /* -------------------------------------------------------------------- */
 
       const primaryImage =
@@ -236,33 +400,56 @@ export default function NewProjectPage() {
           ? imageUrls[0]
           : null;
 
+      /* -------------------------------------------------------------------- */
+      /* Save project                                                         */
+      /* -------------------------------------------------------------------- */
+
       const { error: insertError } =
         await supabase
           .from('portfolio')
           .insert({
             title: title.trim(),
             description: description.trim(),
+
+            /*
+             * Backward-compatible primary image.
+             */
             image: primaryImage,
 
-            // All project images
+            /*
+             * Complete project gallery.
+             */
             images: imageUrls,
 
-            link: link.trim() || null,
-            category: category || null,
+            link:
+              link.trim() || null,
+
+            category:
+              category.trim() || null,
+
             technologies:
               technologies.trim() || null,
+
             featured,
           });
 
       /* -------------------------------------------------------------------- */
-      /* Clean up uploaded files if database insert fails                     */
+      /* Database insert failed                                              */
       /* -------------------------------------------------------------------- */
 
       if (insertError) {
+        /*
+         * Delete uploaded files so we don't
+         * leave orphaned images in storage.
+         */
         if (uploadedFilePaths.length > 0) {
           await supabase.storage
             .from('portfolio-images')
-            .remove(uploadedFilePaths);
+            .remove(
+              uploadedFilePaths
+            );
+
+          uploadedFilePaths = [];
         }
 
         throw new Error(
@@ -270,17 +457,27 @@ export default function NewProjectPage() {
         );
       }
 
+      /* -------------------------------------------------------------------- */
+      /* Success                                                              */
+      /* -------------------------------------------------------------------- */
+
       setSuccess(
         'Project published successfully.'
       );
 
       /* -------------------------------------------------------------------- */
-      /* Reset form                                                           */
+      /* Revoke previews                                                      */
       /* -------------------------------------------------------------------- */
 
       images.forEach((image) => {
-        URL.revokeObjectURL(image.preview);
+        URL.revokeObjectURL(
+          image.preview
+        );
       });
+
+      /* -------------------------------------------------------------------- */
+      /* Reset form                                                           */
+      /* -------------------------------------------------------------------- */
 
       setTitle('');
       setDescription('');
@@ -299,6 +496,25 @@ export default function NewProjectPage() {
         router.refresh();
       }, 900);
     } catch (submitError) {
+      console.error(
+        'Project creation failed:',
+        submitError
+      );
+
+      /*
+       * Safety cleanup.
+       *
+       * If an unexpected error happens after
+       * uploading images, remove those images.
+       */
+      if (uploadedFilePaths.length > 0) {
+        await supabase.storage
+          .from('portfolio-images')
+          .remove(
+            uploadedFilePaths
+          );
+      }
+
       setError(
         submitError instanceof Error
           ? submitError.message
@@ -365,9 +581,14 @@ export default function NewProjectPage() {
 
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={toggleTheme}
-              aria-label="Toggle theme"
-              className={`flex h-10 w-10 items-center justify-center rounded-xl border ${
+              aria-label={
+                lightMode
+                  ? 'Switch to dark mode'
+                  : 'Switch to light mode'
+              }
+              className={`flex h-10 w-10 items-center justify-center rounded-xl border transition ${
                 lightMode
                   ? 'border-black/[0.07] text-zinc-600 hover:bg-black/[0.04]'
                   : 'border-white/[0.08] text-zinc-400 hover:bg-white/[0.05]'
@@ -432,13 +653,18 @@ export default function NewProjectPage() {
                   required
                 >
                   <input
+                    type="text"
                     value={title}
                     onChange={(event) =>
-                      setTitle(event.target.value)
+                      setTitle(
+                        event.target.value
+                      )
                     }
                     placeholder="e.g. Fynaro Technologies"
                     disabled={loading}
-                    className={inputClasses(lightMode)}
+                    className={inputClasses(
+                      lightMode
+                    )}
                   />
                 </Field>
 
@@ -450,7 +676,9 @@ export default function NewProjectPage() {
                   <textarea
                     value={description}
                     onChange={(event) =>
-                      setDescription(event.target.value)
+                      setDescription(
+                        event.target.value
+                      )
                     }
                     placeholder="Briefly describe the project, what you built, and the problem it solves."
                     rows={5}
@@ -462,7 +690,8 @@ export default function NewProjectPage() {
 
                   <div className="mt-2 flex justify-end">
                     <span className="text-[10px] text-zinc-600">
-                      {description.length} characters
+                      {description.length}{' '}
+                      characters
                     </span>
                   </div>
                 </Field>
@@ -472,19 +701,25 @@ export default function NewProjectPage() {
                   <select
                     value={category}
                     onChange={(event) =>
-                      setCategory(event.target.value)
+                      setCategory(
+                        event.target.value
+                      )
                     }
                     disabled={loading}
-                    className={inputClasses(lightMode)}
+                    className={inputClasses(
+                      lightMode
+                    )}
                   >
-                    {categories.map((item) => (
-                      <option
-                        key={item}
-                        value={item}
-                      >
-                        {item}
-                      </option>
-                    ))}
+                    {categories.map(
+                      (item) => (
+                        <option
+                          key={item}
+                          value={item}
+                        >
+                          {item}
+                        </option>
+                      )
+                    )}
                   </select>
                 </Field>
 
@@ -494,6 +729,7 @@ export default function NewProjectPage() {
                   hint="Separate technologies with commas."
                 >
                   <input
+                    type="text"
                     value={technologies}
                     onChange={(event) =>
                       setTechnologies(
@@ -502,7 +738,9 @@ export default function NewProjectPage() {
                     }
                     placeholder="Next.js, React, TypeScript, Supabase"
                     disabled={loading}
-                    className={inputClasses(lightMode)}
+                    className={inputClasses(
+                      lightMode
+                    )}
                   />
                 </Field>
 
@@ -515,11 +753,15 @@ export default function NewProjectPage() {
                     type="url"
                     value={link}
                     onChange={(event) =>
-                      setLink(event.target.value)
+                      setLink(
+                        event.target.value
+                      )
                     }
                     placeholder="https://example.com"
                     disabled={loading}
-                    className={inputClasses(lightMode)}
+                    className={inputClasses(
+                      lightMode
+                    )}
                   />
                 </Field>
               </div>
@@ -541,21 +783,24 @@ export default function NewProjectPage() {
                     </h2>
 
                     <p className="mt-1 text-xs text-zinc-500">
-                      Add up to 5 images. The first image
-                      will be the primary project image.
+                      Add up to 5 images. The
+                      first image will be the
+                      primary project image.
                     </p>
                   </div>
 
                   <span
                     className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium ${
-                      images.length === MAX_IMAGES
+                      images.length ===
+                      MAX_IMAGES
                         ? 'bg-yellow-400/10 text-yellow-500'
                         : lightMode
                           ? 'bg-black/[0.04] text-zinc-500'
                           : 'bg-white/[0.05] text-zinc-500'
                     }`}
                   >
-                    {images.length}/{MAX_IMAGES}
+                    {images.length}/
+                    {MAX_IMAGES}
                   </span>
                 </div>
               </div>
@@ -563,48 +808,59 @@ export default function NewProjectPage() {
               {/* Image previews */}
               {images.length > 0 && (
                 <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {images.map((image, index) => (
-                    <div
-                      key={image.preview}
-                      className="group relative aspect-[4/3] overflow-hidden rounded-xl"
-                    >
-                      <img
-                        src={image.preview}
-                        alt={`Project image ${index + 1}`}
-                        className="h-full w-full object-cover"
-                      />
-
-                      {/* Image number */}
-                      <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-medium text-white backdrop-blur-md">
-                        {index === 0
-                          ? 'Primary'
-                          : `Image ${index + 1}`}
-                      </div>
-
-                      {/* Remove */}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          removeImage(index)
-                        }
-                        disabled={loading}
-                        aria-label={`Remove image ${index + 1}`}
-                        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-red-500"
+                  {images.map(
+                    (image, index) => (
+                      <div
+                        key={image.preview}
+                        className="group relative aspect-[4/3] overflow-hidden rounded-xl"
                       >
-                        <FiX size={15} />
-                      </button>
+                        <img
+                          src={image.preview}
+                          alt={`Project image ${
+                            index + 1
+                          }`}
+                          className="h-full w-full object-cover"
+                        />
 
-                      {/* Filename */}
-                      <div className="absolute bottom-0 left-0 right-0 truncate bg-black/60 px-3 py-2 text-[10px] text-white opacity-0 backdrop-blur-md transition group-hover:opacity-100">
-                        {image.file.name}
+                        {/* Image number */}
+                        <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-medium text-white backdrop-blur-md">
+                          {index === 0
+                            ? 'Primary'
+                            : `Image ${
+                                index + 1
+                              }`}
+                        </div>
+
+                        {/* Remove */}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeImage(
+                              index
+                            )
+                          }
+                          disabled={loading}
+                          aria-label={`Remove image ${
+                            index + 1
+                          }`}
+                          className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-red-500"
+                        >
+                          <FiX size={15} />
+                        </button>
+
+                        {/* Filename */}
+                        <div className="absolute bottom-0 left-0 right-0 truncate bg-black/60 px-3 py-2 text-[10px] text-white opacity-0 backdrop-blur-md transition group-hover:opacity-100">
+                          {image.file.name}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  )}
                 </div>
               )}
 
               {/* Upload */}
-              {images.length < MAX_IMAGES && (
+              {images.length <
+                MAX_IMAGES && (
                 <label
                   className={`group flex min-h-[210px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed transition ${
                     lightMode
@@ -616,13 +872,17 @@ export default function NewProjectPage() {
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
                     multiple
-                    onChange={handleImageChange}
+                    onChange={
+                      handleImageChange
+                    }
                     disabled={loading}
                     className="hidden"
                   />
 
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-400/10 text-yellow-500 transition group-hover:scale-105">
-                    <FiUploadCloud size={21} />
+                    <FiUploadCloud
+                      size={21}
+                    />
                   </div>
 
                   <p className="mt-4 text-sm font-medium">
@@ -633,8 +893,10 @@ export default function NewProjectPage() {
 
                   <p className="mt-1 text-xs text-zinc-500">
                     Select up to{' '}
-                    {MAX_IMAGES - images.length}{' '}
-                    more · PNG, JPG or WebP
+                    {MAX_IMAGES -
+                      images.length}{' '}
+                    more · PNG, JPG or
+                    WebP
                   </p>
 
                   <p className="mt-1 text-[10px] text-zinc-600">
@@ -644,7 +906,8 @@ export default function NewProjectPage() {
               )}
 
               {/* Maximum reached */}
-              {images.length === MAX_IMAGES && (
+              {images.length ===
+                MAX_IMAGES && (
                 <div
                   className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-xs ${
                     lightMode
@@ -653,7 +916,8 @@ export default function NewProjectPage() {
                   }`}
                 >
                   <FiCheck size={14} />
-                  Maximum of 5 images reached
+                  Maximum of 5 images
+                  reached
                 </div>
               )}
             </section>
@@ -673,8 +937,8 @@ export default function NewProjectPage() {
                   </h2>
 
                   <p className="mt-1 text-xs leading-5 text-zinc-500">
-                    Highlight this project on your
-                    portfolio.
+                    Highlight this project
+                    on your portfolio.
                   </p>
                 </div>
 
@@ -682,8 +946,11 @@ export default function NewProjectPage() {
                   type="button"
                   role="switch"
                   aria-checked={featured}
+                  aria-label="Featured project"
                   onClick={() =>
-                    setFeatured((value) => !value)
+                    setFeatured(
+                      (value) => !value
+                    )
                   }
                   disabled={loading}
                   className={`relative h-7 w-12 shrink-0 rounded-full transition ${
@@ -805,10 +1072,12 @@ function Field({
 /* Input styles                                                               */
 /* -------------------------------------------------------------------------- */
 
-function inputClasses(lightMode: boolean) {
-  return `w-full rounded-xl border bg-transparent px-4 text-sm outline-none transition ${
+function inputClasses(
+  lightMode: boolean
+) {
+  return `h-12 w-full rounded-xl border bg-transparent px-4 text-sm outline-none transition ${
     lightMode
       ? 'border-black/[0.08] placeholder:text-zinc-400 focus:border-yellow-400/60 focus:ring-2 focus:ring-yellow-400/10'
       : 'border-white/[0.08] placeholder:text-zinc-600 focus:border-yellow-400/60 focus:ring-2 focus:ring-yellow-400/10'
-  } h-12`;
+  }`;
 }

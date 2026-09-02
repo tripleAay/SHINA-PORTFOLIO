@@ -39,21 +39,6 @@ export default function ProjectsPage() {
   const router = useRouter();
   const { lightMode, toggleTheme } = useTheme();
 
-  /*
-   * Create the Supabase browser client inside the component.
-   *
-   * IMPORTANT:
-   * Do not use:
-   *
-   * import { supabase } from '@/app/lib/supabase';
-   *
-   * This avoids the Vercel build error caused by creating the
-   * Supabase client during module evaluation.
-   *
-   * useMemo keeps the same client instance for this component.
-   */
-  const supabase = useMemo(() => createClient(), []);
-
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -63,15 +48,130 @@ export default function ProjectsPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadProjects();
-  }, []);
+  /* ------------------------------------------------------------------------ */
+  /* Load projects                                                            */
+  /* ------------------------------------------------------------------------ */
 
-  async function loadProjects() {
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProjects() {
+      setLoading(true);
+      setError('');
+
+      try {
+        /*
+         * IMPORTANT:
+         * Create the Supabase client only when this browser-side effect runs.
+         *
+         * Do NOT move this to the component body or useMemo.
+         */
+        const supabase = createClient();
+
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError) {
+          throw new Error(userError.message);
+        }
+
+        if (!user) {
+          router.replace('/admin/login');
+          return;
+        }
+
+        const { data, error: fetchError } = await supabase
+          .from('portfolio')
+          .select(
+            'id, title, description, image, link, category, technologies, featured, created_at'
+          )
+          .order('created_at', { ascending: false });
+
+        if (fetchError) {
+          throw new Error(fetchError.message);
+        }
+
+        if (!cancelled) {
+          setProjects((data ?? []) as Project[]);
+        }
+      } catch (err) {
+        console.error('Load projects error:', err);
+
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : 'Unable to load your projects.'
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadProjects();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
+  /* ------------------------------------------------------------------------ */
+  /* Categories                                                               */
+  /* ------------------------------------------------------------------------ */
+
+  const categories = useMemo(() => {
+    const values = projects
+      .map((project) => project.category)
+      .filter(
+        (value): value is string =>
+          Boolean(value?.trim())
+      );
+
+    return ['All', ...Array.from(new Set(values))];
+  }, [projects]);
+
+  /* ------------------------------------------------------------------------ */
+  /* Filtering                                                                */
+  /* ------------------------------------------------------------------------ */
+
+  const filteredProjects = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return projects.filter((project) => {
+      const matchesCategory =
+        category === 'All' ||
+        project.category === category;
+
+      const matchesSearch =
+        !query ||
+        project.title.toLowerCase().includes(query) ||
+        project.description.toLowerCase().includes(query) ||
+        Boolean(
+          project.technologies
+            ?.toLowerCase()
+            .includes(query)
+        );
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [projects, search, category]);
+
+  /* ------------------------------------------------------------------------ */
+  /* Reload                                                                   */
+  /* ------------------------------------------------------------------------ */
+
+  async function reloadProjects() {
     setLoading(true);
     setError('');
 
     try {
+      const supabase = createClient();
+
       const {
         data: { user },
         error: userError,
@@ -99,7 +199,7 @@ export default function ProjectsPage() {
 
       setProjects((data ?? []) as Project[]);
     } catch (err) {
-      console.error('Load projects error:', err);
+      console.error('Reload projects error:', err);
 
       setError(
         err instanceof Error
@@ -111,36 +211,9 @@ export default function ProjectsPage() {
     }
   }
 
-  const categories = useMemo(() => {
-    const values = projects
-      .map((project) => project.category)
-      .filter(
-        (value): value is string =>
-          Boolean(value?.trim())
-      );
-
-    return ['All', ...Array.from(new Set(values))];
-  }, [projects]);
-
-  const filteredProjects = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    return projects.filter((project) => {
-      const matchesCategory =
-        category === 'All' ||
-        project.category === category;
-
-      const matchesSearch =
-        !query ||
-        project.title.toLowerCase().includes(query) ||
-        project.description.toLowerCase().includes(query) ||
-        project.technologies
-          ?.toLowerCase()
-          .includes(query);
-
-      return matchesCategory && matchesSearch;
-    });
-  }, [projects, search, category]);
+  /* ------------------------------------------------------------------------ */
+  /* Delete project                                                           */
+  /* ------------------------------------------------------------------------ */
 
   async function handleDelete(project: Project) {
     const confirmed = window.confirm(
@@ -153,6 +226,25 @@ export default function ProjectsPage() {
     setError('');
 
     try {
+      /*
+       * Create Supabase client only when the user performs the action.
+       */
+      const supabase = createClient();
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        throw new Error(userError.message);
+      }
+
+      if (!user) {
+        router.replace('/admin/login');
+        return;
+      }
+
       const { error: deleteError } = await supabase
         .from('portfolio')
         .delete()
@@ -172,19 +264,27 @@ export default function ProjectsPage() {
       );
 
       /*
-       * Remove the old image from Supabase Storage if
-       * this project has one.
+       * Remove the associated image from Supabase Storage.
        *
-       * Failure here does not undo the database deletion.
+       * Storage cleanup is intentionally non-blocking.
+       * If it fails, the database record has already been deleted.
        */
       if (project.image) {
         const storagePath =
           getStoragePathFromUrl(project.image);
 
         if (storagePath) {
-          await supabase.storage
-            .from('portfolio-images')
-            .remove([storagePath]);
+          const { error: storageError } =
+            await supabase.storage
+              .from('portfolio-images')
+              .remove([storagePath]);
+
+          if (storageError) {
+            console.warn(
+              'Project deleted but image cleanup failed:',
+              storageError.message
+            );
+          }
         }
       }
     } catch (err) {
@@ -200,12 +300,35 @@ export default function ProjectsPage() {
     }
   }
 
+  /* ------------------------------------------------------------------------ */
+  /* Toggle featured                                                          */
+  /* ------------------------------------------------------------------------ */
+
   async function toggleFeatured(project: Project) {
     const nextValue = !project.featured;
 
     setError('');
 
     try {
+      /*
+       * Create Supabase client only when the action occurs.
+       */
+      const supabase = createClient();
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        throw new Error(userError.message);
+      }
+
+      if (!user) {
+        router.replace('/admin/login');
+        return;
+      }
+
       const { error: updateError } = await supabase
         .from('portfolio')
         .update({
@@ -241,6 +364,28 @@ export default function ProjectsPage() {
     }
   }
 
+  /* ------------------------------------------------------------------------ */
+  /* Sign out                                                                 */
+  /* ------------------------------------------------------------------------ */
+
+  async function handleSignOut() {
+    try {
+      const supabase = createClient();
+
+      await supabase.auth.signOut();
+
+      router.replace('/admin/login');
+    } catch (err) {
+      console.error('Sign out error:', err);
+
+      router.replace('/admin/login');
+    }
+  }
+
+  /* ------------------------------------------------------------------------ */
+  /* Storage helper                                                           */
+  /* ------------------------------------------------------------------------ */
+
   function getStoragePathFromUrl(url: string) {
     const marker =
       '/storage/v1/object/public/portfolio-images/';
@@ -256,13 +401,6 @@ export default function ProjectsPage() {
     );
   }
 
-  const formatDate = (date: string) =>
-    new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(new Date(date));
-
   return (
     <main
       className={`min-h-screen transition-colors duration-500 ${
@@ -271,7 +409,10 @@ export default function ProjectsPage() {
           : 'bg-[#09090B] text-white'
       }`}
     >
-      {/* Mobile overlay */}
+      {/* ------------------------------------------------------------------ */}
+      {/* Mobile overlay                                                     */}
+      {/* ------------------------------------------------------------------ */}
+
       {mobileMenuOpen && (
         <button
           aria-label="Close menu"
@@ -280,7 +421,10 @@ export default function ProjectsPage() {
         />
       )}
 
-      {/* Sidebar */}
+      {/* ------------------------------------------------------------------ */}
+      {/* Sidebar                                                            */}
+      {/* ------------------------------------------------------------------ */}
+
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex w-[250px] flex-col border-r transition-transform duration-300 ${
           mobileMenuOpen
@@ -327,6 +471,7 @@ export default function ProjectsPage() {
               setMobileMenuOpen(false)
             }
             className="ml-auto text-zinc-500 lg:hidden"
+            aria-label="Close navigation"
           >
             <FiX size={19} />
           </button>
@@ -403,6 +548,7 @@ export default function ProjectsPage() {
           <Link
             href="/"
             target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-zinc-500 transition hover:text-yellow-500"
           >
             <FiExternalLink size={16} />
@@ -410,10 +556,7 @@ export default function ProjectsPage() {
           </Link>
 
           <button
-            onClick={async () => {
-              await supabase.auth.signOut();
-              router.replace('/admin/login');
-            }}
+            onClick={handleSignOut}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-zinc-500 transition hover:text-red-400"
           >
             <span>↪</span>
@@ -422,7 +565,10 @@ export default function ProjectsPage() {
         </div>
       </aside>
 
-      {/* Main */}
+      {/* ------------------------------------------------------------------ */}
+      {/* Main                                                               */}
+      {/* ------------------------------------------------------------------ */}
+
       <div className="lg:pl-[250px]">
         {/* Header */}
         <header
@@ -437,6 +583,7 @@ export default function ProjectsPage() {
               setMobileMenuOpen(true)
             }
             className="rounded-xl p-2 text-zinc-500 lg:hidden"
+            aria-label="Open navigation"
           >
             <FiMenu size={21} />
           </button>
@@ -552,7 +699,11 @@ export default function ProjectsPage() {
                 <button
                   onClick={() => setSearch('')}
                   aria-label="Clear search"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 ${
+                    lightMode
+                      ? 'text-zinc-500 hover:text-zinc-900'
+                      : 'text-zinc-500 hover:text-white'
+                  }`}
                 >
                   <FiX size={15} />
                 </button>
@@ -653,7 +804,7 @@ export default function ProjectsPage() {
               <p>{error}</p>
 
               <button
-                onClick={loadProjects}
+                onClick={reloadProjects}
                 className="mt-3 text-xs font-medium underline underline-offset-4"
               >
                 Try again
@@ -663,7 +814,10 @@ export default function ProjectsPage() {
 
           {/* Loading */}
           {loading && !error && (
-            <ProjectSkeleton view={view} />
+            <ProjectSkeleton
+              view={view}
+              lightMode={lightMode}
+            />
           )}
 
           {/* Empty */}
@@ -957,7 +1111,9 @@ function ProjectCard({
           }`}
         >
           <p className="text-[10px] text-zinc-600">
-            {formatProjectDate(project.created_at)}
+            {formatProjectDate(
+              project.created_at
+            )}
           </p>
 
           <div className="flex items-center gap-1">
@@ -1086,6 +1242,7 @@ function ProjectListRow({
         <Link
           href={`/admin/projects/${project.id}/edit`}
           className="rounded-lg p-2.5 text-zinc-500 hover:bg-yellow-400/10 hover:text-yellow-500"
+          aria-label={`Edit ${project.title}`}
         >
           <FiEdit3 size={15} />
         </Link>
@@ -1096,6 +1253,7 @@ function ProjectListRow({
           }
           disabled={deleting}
           className="rounded-lg p-2.5 text-zinc-500 hover:bg-red-400/10 hover:text-red-400 disabled:opacity-50"
+          aria-label={`Delete ${project.title}`}
         >
           <FiTrash2 size={15} />
         </button>
@@ -1127,8 +1285,10 @@ function formatProjectDate(date: string) {
 
 function ProjectSkeleton({
   view,
+  lightMode,
 }: {
   view: 'grid' | 'list';
+  lightMode: boolean;
 }) {
   if (view === 'list') {
     return (
@@ -1136,14 +1296,36 @@ function ProjectSkeleton({
         {[1, 2, 3, 4].map((item) => (
           <div
             key={item}
-            className="flex items-center gap-4 rounded-2xl border border-white/[0.06] p-4"
+            className={`flex items-center gap-4 rounded-2xl border p-4 ${
+              lightMode
+                ? 'border-black/[0.06] bg-white/50'
+                : 'border-white/[0.06] bg-white/[0.025]'
+            }`}
           >
-            <div className="h-14 w-20 animate-pulse rounded-xl bg-white/[0.05]" />
+            <div
+              className={`h-14 w-20 animate-pulse rounded-xl ${
+                lightMode
+                  ? 'bg-black/[0.05]'
+                  : 'bg-white/[0.05]'
+              }`}
+            />
 
             <div className="flex-1">
-              <div className="h-3 w-32 animate-pulse rounded bg-white/[0.05]" />
+              <div
+                className={`h-3 w-32 animate-pulse rounded ${
+                  lightMode
+                    ? 'bg-black/[0.05]'
+                    : 'bg-white/[0.05]'
+                }`}
+              />
 
-              <div className="mt-2 h-2.5 w-52 animate-pulse rounded bg-white/[0.04]" />
+              <div
+                className={`mt-2 h-2.5 w-52 animate-pulse rounded ${
+                  lightMode
+                    ? 'bg-black/[0.04]'
+                    : 'bg-white/[0.04]'
+                }`}
+              />
             </div>
           </div>
         ))}
@@ -1157,16 +1339,44 @@ function ProjectSkeleton({
         (item) => (
           <div
             key={item}
-            className="overflow-hidden rounded-2xl border border-white/[0.06]"
+            className={`overflow-hidden rounded-2xl border ${
+              lightMode
+                ? 'border-black/[0.06] bg-white/50'
+                : 'border-white/[0.06]'
+            }`}
           >
-            <div className="aspect-[16/10] animate-pulse bg-white/[0.04]" />
+            <div
+              className={`aspect-[16/10] animate-pulse ${
+                lightMode
+                  ? 'bg-black/[0.04]'
+                  : 'bg-white/[0.04]'
+              }`}
+            />
 
             <div className="space-y-3 p-5">
-              <div className="h-3 w-32 animate-pulse rounded bg-white/[0.05]" />
+              <div
+                className={`h-3 w-32 animate-pulse rounded ${
+                  lightMode
+                    ? 'bg-black/[0.05]'
+                    : 'bg-white/[0.05]'
+                }`}
+              />
 
-              <div className="h-2.5 w-20 animate-pulse rounded bg-white/[0.04]" />
+              <div
+                className={`h-2.5 w-20 animate-pulse rounded ${
+                  lightMode
+                    ? 'bg-black/[0.04]'
+                    : 'bg-white/[0.04]'
+                }`}
+              />
 
-              <div className="h-8 w-full animate-pulse rounded bg-white/[0.04]" />
+              <div
+                className={`h-8 w-full animate-pulse rounded ${
+                  lightMode
+                    ? 'bg-black/[0.04]'
+                    : 'bg-white/[0.04]'
+                }`}
+              />
             </div>
           </div>
         )
@@ -1174,3 +1384,4 @@ function ProjectSkeleton({
     </div>
   );
 }
+

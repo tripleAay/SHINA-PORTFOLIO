@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -15,7 +16,6 @@ import {
   FiArrowUpRight,
   FiChevronLeft,
   FiChevronRight,
-  FiExternalLink,
   FiX,
 } from 'react-icons/fi';
 
@@ -27,7 +27,6 @@ import {
 } from 'framer-motion';
 
 import { createClient } from '../lib/client';
-
 
 /* =========================================================
    TYPES
@@ -45,7 +44,6 @@ type PortfolioProject = {
   featured: boolean;
   created_at: string;
 };
-
 
 /* =========================================================
    HELPERS
@@ -85,10 +83,9 @@ const getProjectImages = (
   return [];
 };
 
-
 /**
- * Converts comma-separated technologies into
- * a clean array.
+ * Converts comma-separated technologies
+ * into a clean array.
  */
 const getTechnologies = (
   technologies: string | null
@@ -100,7 +97,6 @@ const getTechnologies = (
     .map((technology) => technology.trim())
     .filter(Boolean);
 };
-
 
 /* =========================================================
    PROJECT OVERVIEW MODAL
@@ -158,7 +154,6 @@ const ProjectOverviewModal: React.FC<
     currentProjectIndex <
       projects.length - 1;
 
-
   /* =======================================================
      RESET IMAGE WHEN PROJECT CHANGES
   ======================================================= */
@@ -166,7 +161,6 @@ const ProjectOverviewModal: React.FC<
   useEffect(() => {
     setActiveImage(0);
   }, [project?.id]);
-
 
   /* =======================================================
      KEYBOARD CONTROLS + BODY LOCK
@@ -256,7 +250,6 @@ const ProjectOverviewModal: React.FC<
     onNext,
   ]);
 
-
   /* =======================================================
      NO PROJECT
   ======================================================= */
@@ -264,7 +257,6 @@ const ProjectOverviewModal: React.FC<
   if (!project) {
     return null;
   }
-
 
   /* =======================================================
      IMAGE NAVIGATION
@@ -287,7 +279,6 @@ const ProjectOverviewModal: React.FC<
           : current + 1
     );
   };
-
 
   /* =======================================================
      MODAL
@@ -357,26 +348,19 @@ const ProjectOverviewModal: React.FC<
               <FiX size={16} />
             </button>
 
-
             {/* =================================================
                 PROJECT CONTENT
             ================================================= */}
 
             <div className="grid lg:grid-cols-[1.35fr_0.65fr]">
-
-
               {/* ===============================================
                   IMAGE AREA
               ================================================ */}
 
               <div className="relative bg-[#09090b]">
-
                 <div className="relative aspect-[16/11] w-full overflow-hidden sm:aspect-[16/10] lg:aspect-auto lg:min-h-[650px]">
-
                   {images.length > 0 ? (
-                    <AnimatePresence
-                      mode="wait"
-                    >
+                    <AnimatePresence mode="wait">
                       <motion.div
                         key={`${project.id}-${activeImage}`}
                         className="absolute inset-0"
@@ -417,17 +401,11 @@ const ProjectOverviewModal: React.FC<
                     </div>
                   )}
 
-
-                  {/* =========================================
-                      IMAGE GRADIENT
-                  ========================================== */}
+                  {/* IMAGE GRADIENT */}
 
                   <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
 
-
-                  {/* =========================================
-                      IMAGE COUNTER
-                  ========================================== */}
+                  {/* IMAGE COUNTER */}
 
                   {images.length > 1 && (
                     <div className="absolute bottom-4 left-4 rounded-full bg-black/55 px-3 py-1.5 text-[9px] font-medium uppercase tracking-[0.16em] text-white/80 backdrop-blur-md">
@@ -441,10 +419,7 @@ const ProjectOverviewModal: React.FC<
                     </div>
                   )}
 
-
-                  {/* =========================================
-                      IMAGE ARROWS
-                  ========================================== */}
+                  {/* IMAGE ARROWS */}
 
                   {images.length > 1 && (
                     <>
@@ -475,13 +450,9 @@ const ProjectOverviewModal: React.FC<
                       </button>
                     </>
                   )}
-
                 </div>
 
-
-                {/* =============================================
-                    THUMBNAILS
-                ============================================== */}
+                {/* THUMBNAILS */}
 
                 {images.length > 1 && (
                   <div className="flex gap-2 overflow-x-auto border-t border-white/[0.06] bg-[#09090b] p-3 scrollbar-hide">
@@ -520,26 +491,19 @@ const ProjectOverviewModal: React.FC<
                     )}
                   </div>
                 )}
-
               </div>
-
 
               {/* ===============================================
                   INFORMATION AREA
               ================================================ */}
 
               <div className="flex flex-col">
-
                 <div className="flex-1 p-6 sm:p-8 lg:p-10">
-
-                  {/* =========================================
-                      PROJECT META
-                  ========================================== */}
+                  {/* PROJECT META */}
 
                   <div className="flex items-center gap-3">
-
                     {project.category && (
-                      <span className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500">
+                      <span className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-500">
                         <span className="h-1.5 w-1.5 rounded-full bg-yellow-400" />
 
                         {project.category}
@@ -551,44 +515,31 @@ const ProjectOverviewModal: React.FC<
                         Featured
                       </span>
                     )}
-
                   </div>
 
-
-                  {/* =========================================
-                      TITLE
-                  ========================================== */}
+                  {/* TITLE */}
 
                   <h2 className="mt-5 max-w-md text-3xl font-semibold tracking-[-0.045em] text-gray-950 sm:text-4xl dark:text-white">
                     {project.title}
                   </h2>
 
-
-                  {/* =========================================
-                      DESCRIPTION
-                  ========================================== */}
+                  {/* DESCRIPTION */}
 
                   <div className="mt-8">
-
-                    <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-gray-400 dark:text-gray-600">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-600">
                       Overview
                     </p>
 
-                    <p className="mt-3 text-sm leading-7 text-gray-500 dark:text-gray-400">
+                    <p className="mt-3 text-sm leading-7 text-gray-600 dark:text-gray-400">
                       {project.description}
                     </p>
-
                   </div>
 
-
-                  {/* =========================================
-                      TECHNOLOGIES
-                  ========================================== */}
+                  {/* TECHNOLOGIES */}
 
                   {technologies.length > 0 && (
                     <div className="mt-9">
-
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-gray-400 dark:text-gray-600">
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-600">
                         Built with
                       </p>
 
@@ -599,7 +550,7 @@ const ProjectOverviewModal: React.FC<
                           ) => (
                             <span
                               key={`${project.id}-${technology}`}
-                              className="rounded-full border border-gray-900/[0.07] bg-gray-950/[0.025] px-3 py-1.5 text-[9px] font-medium text-gray-500 dark:border-white/[0.07] dark:bg-white/[0.03] dark:text-gray-400"
+                              className="rounded-full border border-gray-900/[0.07] bg-gray-950/[0.025] px-3 py-1.5 text-[9px] font-medium text-gray-600 dark:border-white/[0.07] dark:bg-white/[0.03] dark:text-gray-400"
                             >
                               {
                                 technology
@@ -608,19 +559,14 @@ const ProjectOverviewModal: React.FC<
                           )
                         )}
                       </div>
-
                     </div>
                   )}
 
-
-                  {/* =========================================
-                      PROJECT LINK
-                  ========================================== */}
+                  {/* PROJECT LINK */}
 
                   {project.link &&
                     project.link !== '#' && (
                       <div className="mt-10">
-
                         <a
                           href={
                             project.link
@@ -636,21 +582,14 @@ const ProjectOverviewModal: React.FC<
                             className="transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
                           />
                         </a>
-
                       </div>
                     )}
-
                 </div>
 
-
-                {/* =============================================
-                    PROJECT NAVIGATION
-                ============================================== */}
+                {/* PROJECT NAVIGATION */}
 
                 <div className="border-t border-gray-900/[0.07] p-5 dark:border-white/[0.07]">
-
                   <div className="flex items-center justify-between">
-
                     <button
                       type="button"
                       onClick={
@@ -659,7 +598,7 @@ const ProjectOverviewModal: React.FC<
                       disabled={
                         !hasPreviousProject
                       }
-                      className="group flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-gray-400 transition-colors hover:text-gray-950 disabled:pointer-events-none disabled:opacity-20 dark:hover:text-white"
+                      className="group flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-gray-500 transition-colors hover:text-gray-950 disabled:pointer-events-none disabled:opacity-20 dark:hover:text-white"
                     >
                       <FiArrowLeft
                         size={13}
@@ -669,14 +608,14 @@ const ProjectOverviewModal: React.FC<
                       Previous
                     </button>
 
-
-                    <span className="text-[9px] font-medium uppercase tracking-[0.16em] text-gray-300 dark:text-gray-700">
+                    <span className="text-[9px] font-medium uppercase tracking-[0.16em] text-gray-400 dark:text-gray-700">
                       {currentProjectIndex +
                         1}{' '}
                       /{' '}
-                      {projects.length}
+                      {
+                        projects.length
+                      }
                     </span>
-
 
                     <button
                       type="button"
@@ -684,7 +623,7 @@ const ProjectOverviewModal: React.FC<
                       disabled={
                         !hasNextProject
                       }
-                      className="group flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-gray-400 transition-colors hover:text-gray-950 disabled:pointer-events-none disabled:opacity-20 dark:hover:text-white"
+                      className="group flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-gray-500 transition-colors hover:text-gray-950 disabled:pointer-events-none disabled:opacity-20 dark:hover:text-white"
                     >
                       Next
 
@@ -693,22 +632,16 @@ const ProjectOverviewModal: React.FC<
                         className="transition-transform duration-200 group-hover:translate-x-1"
                       />
                     </button>
-
                   </div>
-
                 </div>
-
               </div>
-
             </div>
-
           </motion.div>
         </div>
       </motion.div>
     </AnimatePresence>
   );
 };
-
 
 /* =========================================================
    PORTFOLIO
@@ -745,7 +678,6 @@ const Portfolio: React.FC = () => {
     error,
     setError,
   ] = useState('');
-
 
   /* =========================================================
      LOAD PROJECTS
@@ -801,7 +733,6 @@ const Portfolio: React.FC = () => {
             );
           }
 
-
           /* ===============================================
              NORMALIZE PROJECT DATA
           ================================================ */
@@ -824,11 +755,9 @@ const Portfolio: React.FC = () => {
               })
             ) as PortfolioProject[];
 
-
           setProjects(
             normalizedProjects
           );
-
         } catch (err) {
           if (cancelled) return;
 
@@ -842,7 +771,6 @@ const Portfolio: React.FC = () => {
               ? err.message
               : 'Unable to load projects.'
           );
-
         } finally {
           if (!cancelled) {
             setIsLoading(false);
@@ -856,7 +784,6 @@ const Portfolio: React.FC = () => {
       cancelled = true;
     };
   }, []);
-
 
   /* =========================================================
      CATEGORIES
@@ -887,7 +814,6 @@ const Portfolio: React.FC = () => {
       ];
     }, [projects]);
 
-
   /* =========================================================
      FILTERED PROJECTS
   ========================================================= */
@@ -911,7 +837,6 @@ const Portfolio: React.FC = () => {
       selectedCategory,
     ]);
 
-
   /* =========================================================
      KEEP FILTER VALID
   ========================================================= */
@@ -933,7 +858,6 @@ const Portfolio: React.FC = () => {
     selectedCategory,
   ]);
 
-
   /* =========================================================
      SELECTED PROJECT NAVIGATION
   ========================================================= */
@@ -946,13 +870,11 @@ const Portfolio: React.FC = () => {
     );
   };
 
-
   const closeProject = () => {
     setSelectedProject(
       null
     );
   };
-
 
   const goToPreviousProject =
     () => {
@@ -981,7 +903,6 @@ const Portfolio: React.FC = () => {
         ]
       );
     };
-
 
   const goToNextProject =
     () => {
@@ -1013,7 +934,6 @@ const Portfolio: React.FC = () => {
       );
     };
 
-
   /* =========================================================
      RENDER
   ========================================================= */
@@ -1025,17 +945,16 @@ const Portfolio: React.FC = () => {
         aria-labelledby="portfolio-title"
         className={`relative overflow-hidden transition-colors duration-500 ${
           lightMode
-            ? 'bg-[#D9CAB3] text-gray-950'
+            ? 'bg-[#D9CAB3] text-[#171512]'
             : 'bg-[#0b0b0d] text-white'
         }`}
       >
-
         {/* ===================================================
             SUBTLE BACKGROUND GRID
         ==================================================== */}
 
         <div
-          className={`pointer-events-none absolute inset-0 opacity-[0.018] ${
+          className={`pointer-events-none absolute inset-0 opacity-[0.01] ${
             lightMode
               ? 'text-black'
               : 'text-white'
@@ -1048,34 +967,26 @@ const Portfolio: React.FC = () => {
           }}
         />
 
-
-        <div className="relative mx-auto max-w-6xl px-6 py-28 sm:px-8 lg:px-10 lg:py-36">
-
-
+        <div className="relative mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-28 lg:px-10 lg:py-36">
           {/* =================================================
               INTRO
           ================================================== */}
 
           <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
-
-            <div className="max-w-xl">
-
-              <div className="mb-5 flex items-center gap-3">
-
+            <div className="mx-auto max-w-xl text-center md:mx-0 md:text-left">
+              <div className="mb-5 flex items-center justify-center gap-3 md:justify-start">
                 <span className="h-px w-7 bg-yellow-400" />
 
                 <span
                   className={`text-[10px] font-semibold uppercase tracking-[0.25em] ${
                     lightMode
-                      ? 'text-gray-400'
+                      ? 'text-[#5A5147]'
                       : 'text-gray-500'
                   }`}
                 >
                   Selected work
                 </span>
-
               </div>
-
 
               <motion.h2
                 id="portfolio-title"
@@ -1101,7 +1012,6 @@ const Portfolio: React.FC = () => {
                 Things I&apos;ve built.
               </motion.h2>
 
-
               <motion.p
                 initial={{
                   opacity: 0,
@@ -1121,16 +1031,18 @@ const Portfolio: React.FC = () => {
                   delay: 0.08,
                   ease: 'easeOut',
                 }}
-                className="mt-4 max-w-lg text-sm leading-7 text-gray-500 sm:text-base"
+                className={`mx-auto mt-4 max-w-lg text-sm leading-7 sm:text-base md:mx-0 ${
+                  lightMode
+                    ? 'text-[#494139]'
+                    : 'text-gray-400'
+                }`}
               >
                 A selection of digital
                 products, interfaces and
                 experiences shaped through
                 engineering and design.
               </motion.p>
-
             </div>
-
 
             {/* =============================================
                 PROJECT COUNT
@@ -1139,11 +1051,10 @@ const Portfolio: React.FC = () => {
             <div
               className={`hidden pb-1 text-right md:block ${
                 lightMode
-                  ? 'text-gray-400'
+                  ? 'text-[#5A5147]'
                   : 'text-gray-600'
               }`}
             >
-
               <span className="text-2xl font-medium tracking-tight">
                 {String(
                   filteredProjects.length
@@ -1156,11 +1067,8 @@ const Portfolio: React.FC = () => {
               <span className="ml-2 text-[10px] uppercase tracking-[0.18em]">
                 projects
               </span>
-
             </div>
-
           </div>
-
 
           {/* =================================================
               FILTERS
@@ -1170,45 +1078,43 @@ const Portfolio: React.FC = () => {
             !error &&
             projects.length >
               0 && (
+              <div className="mt-12 flex justify-center overflow-x-auto pb-1 scrollbar-hide md:justify-start">
+                <div className="flex items-center gap-1.5">
+                  {categories.map(
+                    (category) => {
+                      const active =
+                        selectedCategory ===
+                        category;
 
-              <div className="mt-14 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-
-                {categories.map(
-                  (category) => {
-                    const active =
-                      selectedCategory ===
-                      category;
-
-                    return (
-                      <button
-                        key={
-                          category
-                        }
-                        type="button"
-                        onClick={() =>
-                          setSelectedCategory(
+                      return (
+                        <button
+                          key={
                             category
-                          )
-                        }
-                        className={`shrink-0 rounded-full px-3.5 py-1.5 text-[10px] font-medium transition-all duration-200 ${
-                          active
-                            ? 'bg-yellow-400 text-gray-950'
-                            : lightMode
-                              ? 'text-gray-500 hover:bg-gray-100 hover:text-gray-950'
-                              : 'text-gray-500 hover:bg-white/5 hover:text-gray-200'
-                        }`}
-                      >
-                        {
-                          category
-                        }
-                      </button>
-                    );
-                  }
-                )}
-
+                          }
+                          type="button"
+                          onClick={() =>
+                            setSelectedCategory(
+                              category
+                            )
+                          }
+                          className={`shrink-0 rounded-full px-3.5 py-1.5 text-[10px] font-medium transition-all duration-200 ${
+                            active
+                              ? 'bg-yellow-400 text-gray-950'
+                              : lightMode
+                                ? 'text-[#5A5147] hover:bg-black/[0.05] hover:text-[#171512]'
+                                : 'text-gray-500 hover:bg-white/5 hover:text-gray-200'
+                          }`}
+                        >
+                          {
+                            category
+                          }
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
               </div>
             )}
-
 
           {/* =================================================
               LOADING
@@ -1216,7 +1122,6 @@ const Portfolio: React.FC = () => {
 
           {isLoading && (
             <div className="mt-20 grid grid-cols-1 gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
-
               {[
                 1,
                 2,
@@ -1227,7 +1132,6 @@ const Portfolio: React.FC = () => {
                     key={item}
                     className="animate-pulse"
                   >
-
                     <div
                       className={`aspect-[16/10] rounded-xl ${
                         lightMode
@@ -1237,7 +1141,6 @@ const Portfolio: React.FC = () => {
                     />
 
                     <div className="mt-5">
-
                       <div
                         className={`h-3 w-2/3 rounded ${
                           lightMode
@@ -1253,16 +1156,12 @@ const Portfolio: React.FC = () => {
                             : 'bg-white/[0.04]'
                         }`}
                       />
-
                     </div>
-
                   </div>
                 )
               )}
-
             </div>
           )}
-
 
           {/* =================================================
               ERROR
@@ -1270,13 +1169,11 @@ const Portfolio: React.FC = () => {
 
           {!isLoading &&
             error && (
-
               <div className="mt-20 flex flex-col items-center justify-center py-16 text-center">
-
                 <p
                   className={`text-sm ${
                     lightMode
-                      ? 'text-gray-500'
+                      ? 'text-[#494139]'
                       : 'text-gray-400'
                   }`}
                 >
@@ -1292,10 +1189,8 @@ const Portfolio: React.FC = () => {
                 >
                   Try again
                 </button>
-
               </div>
             )}
-
 
           {/* =================================================
               EMPTY
@@ -1305,23 +1200,19 @@ const Portfolio: React.FC = () => {
             !error &&
             projects.length ===
               0 && (
-
               <div className="mt-20 flex flex-col items-center justify-center py-16 text-center">
-
                 <p
                   className={`text-sm ${
                     lightMode
-                      ? 'text-gray-500'
+                      ? 'text-[#494139]'
                       : 'text-gray-400'
                   }`}
                 >
                   No projects
                   available yet.
                 </p>
-
               </div>
             )}
-
 
           {/* =================================================
               PROJECT GRID
@@ -1331,17 +1222,13 @@ const Portfolio: React.FC = () => {
             !error &&
             filteredProjects.length >
               0 && (
-
               <motion.div
                 layout
                 className="mt-12 grid grid-cols-1 gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3"
               >
-
                 <AnimatePresence mode="popLayout">
-
                   {filteredProjects.map(
                     (project) => {
-
                       const images =
                         getProjectImages(
                           project
@@ -1378,28 +1265,23 @@ const Portfolio: React.FC = () => {
                               1,
                             ],
                           }}
-                          className="group cursor-pointer"
+                          className="group mx-auto w-full max-w-xl cursor-pointer text-center sm:max-w-none sm:text-left"
                           onClick={() =>
                             openProject(
                               project
                             )
                           }
                         >
-
-                          {/* =================================
-                              IMAGE
-                          ================================== */}
+                          {/* IMAGE */}
 
                           <div
                             className={`relative overflow-hidden rounded-xl ${
                               lightMode
-                                ? 'bg-gray-100'
+                                ? 'bg-black/[0.035]'
                                 : 'bg-white/[0.03]'
                             }`}
                           >
-
                             <div className="relative aspect-[16/10] overflow-hidden">
-
                               {previewImage ? (
                                 <Image
                                   src={
@@ -1417,14 +1299,14 @@ const Portfolio: React.FC = () => {
                                 <div
                                   className={`flex h-full w-full items-center justify-center ${
                                     lightMode
-                                      ? 'bg-gray-100'
+                                      ? 'bg-black/[0.035]'
                                       : 'bg-white/[0.03]'
                                   }`}
                                 >
                                   <span
                                     className={`text-[10px] uppercase tracking-[0.18em] ${
                                       lightMode
-                                        ? 'text-gray-400'
+                                        ? 'text-[#5A5147]'
                                         : 'text-gray-600'
                                     }`}
                                   >
@@ -1433,66 +1315,46 @@ const Portfolio: React.FC = () => {
                                 </div>
                               )}
 
-
-                              {/* =================================
-                                  IMAGE OVERLAY
-                              ================================== */}
+                              {/* IMAGE OVERLAY */}
 
                               <div className="pointer-events-none absolute inset-0 bg-black/[0.02] transition-colors duration-500 group-hover:bg-black/[0.08]" />
 
-
-                              {/* =================================
-                                  VIEW INDICATOR
-                              ================================== */}
+                              {/* VIEW INDICATOR */}
 
                               <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-
                                 <div className="flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-gray-950 shadow-lg backdrop-blur-md">
-
                                   View project
 
                                   <FiArrowUpRight
                                     size={13}
                                   />
-
                                 </div>
-
                               </div>
 
-
-                              {/* =================================
-                                  IMAGE COUNT
-                              ================================== */}
+                              {/* IMAGE COUNT */}
 
                               {images.length >
                                 1 && (
                                 <div className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-[8px] font-medium uppercase tracking-[0.12em] text-white/80 backdrop-blur-md">
-                                  {images.length}{' '}
+                                  {
+                                    images.length
+                                  }{' '}
                                   images
                                 </div>
                               )}
-
                             </div>
-
                           </div>
 
+                          {/* PROJECT INFO */}
 
-                          {/* =================================
-                              MINIMAL PROJECT INFO
-                          ================================== */}
-
-                          <div className="mt-4">
-
+                          <div className="mt-4 text-center sm:text-left">
                             <div className="flex items-start justify-between gap-4">
-
                               <div className="min-w-0">
-
-                                <div className="flex items-center gap-2">
-
+                                <div className="flex items-center justify-center gap-2 sm:justify-start">
                                   <h3
                                     className={`truncate text-sm font-semibold tracking-[-0.015em] ${
                                       lightMode
-                                        ? 'text-gray-950'
+                                        ? 'text-[#171512]'
                                         : 'text-gray-100'
                                     }`}
                                   >
@@ -1506,13 +1368,10 @@ const Portfolio: React.FC = () => {
                                       Featured
                                     </span>
                                   )}
-
                                 </div>
 
-
                                 {project.category && (
-                                  <div className="mt-2 flex items-center gap-2">
-
+                                  <div className="mt-2 flex items-center justify-center gap-2 sm:justify-start">
                                     <span
                                       className={`h-1 w-1 rounded-full ${
                                         lightMode
@@ -1524,7 +1383,7 @@ const Portfolio: React.FC = () => {
                                     <span
                                       className={`text-[9px] font-medium uppercase tracking-[0.18em] ${
                                         lightMode
-                                          ? 'text-gray-400'
+                                          ? 'text-[#5A5147]'
                                           : 'text-gray-600'
                                       }`}
                                     >
@@ -1532,21 +1391,16 @@ const Portfolio: React.FC = () => {
                                         project.category
                                       }
                                     </span>
-
                                   </div>
                                 )}
-
                               </div>
 
-
-                              {/* =================================
-                                  ARROW
-                              ================================== */}
+                              {/* ARROW */}
 
                               <div
                                 className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-all duration-300 ${
                                   lightMode
-                                    ? 'border-gray-900/[0.08] text-gray-400 group-hover:border-gray-950 group-hover:bg-gray-950 group-hover:text-white'
+                                    ? 'border-black/[0.1] text-[#5A5147] group-hover:border-[#171512] group-hover:bg-[#171512] group-hover:text-white'
                                     : 'border-white/[0.08] text-gray-500 group-hover:border-white/20 group-hover:bg-white group-hover:text-gray-950'
                                 }`}
                               >
@@ -1555,21 +1409,15 @@ const Portfolio: React.FC = () => {
                                   className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
                                 />
                               </div>
-
                             </div>
-
                           </div>
-
                         </motion.article>
                       );
                     }
                   )}
-
                 </AnimatePresence>
-
               </motion.div>
             )}
-
 
           {/* =================================================
               FILTER EMPTY
@@ -1580,13 +1428,11 @@ const Portfolio: React.FC = () => {
             projects.length > 0 &&
             filteredProjects.length ===
               0 && (
-
               <div className="mt-20 flex flex-col items-center justify-center py-16 text-center">
-
                 <p
                   className={`text-sm ${
                     lightMode
-                      ? 'text-gray-500'
+                      ? 'text-[#494139]'
                       : 'text-gray-400'
                   }`}
                 >
@@ -1601,33 +1447,29 @@ const Portfolio: React.FC = () => {
                       'All'
                     )
                   }
-                  className="mt-5 text-xs font-semibold text-yellow-500 transition-colors hover:text-yellow-400"
+                  className="mt-5 text-xs font-semibold text-yellow-600 transition-colors hover:text-yellow-500 dark:text-yellow-500 dark:hover:text-yellow-400"
                 >
                   View all projects
                 </button>
-
               </div>
             )}
-
 
           {/* =================================================
               BOTTOM STATEMENT
           ================================================== */}
 
           <div
-            className={`mt-24 border-t pt-6 ${
+            className={`mt-20 border-t pt-6 sm:mt-24 ${
               lightMode
-                ? 'border-gray-900/[0.07]'
+                ? 'border-black/[0.09]'
                 : 'border-white/[0.07]'
             }`}
           >
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
+            <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
               <p
                 className={`text-[10px] uppercase tracking-[0.18em] ${
                   lightMode
-                    ? 'text-gray-400'
+                    ? 'text-[#5A5147]'
                     : 'text-gray-600'
                 }`}
               >
@@ -1638,22 +1480,17 @@ const Portfolio: React.FC = () => {
               <p
                 className={`text-[10px] ${
                   lightMode
-                    ? 'text-gray-400'
+                    ? 'text-[#5A5147]'
                     : 'text-gray-600'
                 }`}
               >
                 More projects coming
                 soon.
               </p>
-
             </div>
-
           </div>
-
         </div>
-
       </section>
-
 
       {/* =====================================================
           PROJECT OVERVIEW
@@ -1674,10 +1511,9 @@ const Portfolio: React.FC = () => {
           goToNextProject
         }
       />
-
     </>
   );
 };
 
-
 export default Portfolio;
+

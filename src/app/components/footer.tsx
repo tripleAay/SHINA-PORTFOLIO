@@ -6,8 +6,6 @@ import { ThemeContext } from '../contexts/ThemeContext';
 import {
   FiArrowUpRight,
   FiArrowUp,
-  FiGithub,
-  FiLinkedin,
 } from 'react-icons/fi';
 
 const Footer = () => {
@@ -24,52 +22,60 @@ const Footer = () => {
     <footer
       className={`relative overflow-hidden border-t transition-colors duration-500 ${
         lightMode
-          ? 'border-black/[0.08] bg-[#D9CAB3]/40  text-gray-950'
-          : 'border-white/[0.07] bg-[#0b0b0d] text-white'
+          ? 'border-black/[0.10] bg-[#E7DED0] text-[#171512]'
+          : 'border-white/[0.08] bg-[#09090B] text-white'
       }`}
     >
       {/* =================================
-          SUBTLE BACKGROUND GRID
+          BACKGROUND GRID
       ================================== */}
       <div
-        className={`pointer-events-none absolute inset-0 opacity-[0.025] ${
-          lightMode ? 'text-black' : 'text-white'
+        className={`pointer-events-none absolute inset-0 ${
+          lightMode ? 'opacity-[0.035]' : 'opacity-[0.025]'
         }`}
         style={{
           backgroundImage:
             'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
-          backgroundSize: '80px 80px',
+          backgroundSize: '72px 72px',
         }}
       />
 
       {/* =================================
-          AMBIENT GLOW
+          AMBIENT LIGHT
       ================================== */}
       <div
-        className={`pointer-events-none absolute bottom-[-180px] left-1/2 h-[420px] w-[620px] -translate-x-1/2 rounded-full blur-3xl ${
+        className={`pointer-events-none absolute left-1/2 top-[45%] h-[520px] w-[760px] -translate-x-1/2 rounded-full blur-3xl ${
           lightMode
-            ? 'bg-yellow-400/[0.035]'
+            ? 'bg-yellow-400/[0.07]'
             : 'bg-yellow-400/[0.025]'
         }`}
       />
+
+      {/* =================================
+          TOP ACCENT
+      ================================== */}
+      <div className="pointer-events-none absolute left-1/2 top-0 h-px w-32 -translate-x-1/2 bg-gradient-to-r from-transparent via-yellow-400 to-transparent opacity-80" />
 
       <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-10">
 
         {/* =================================
             CLOSING STATEMENT
         ================================== */}
-        <div className="relative py-20 sm:py-24 md:py-28">
+        <div className="relative py-16 sm:py-20 md:py-24">
 
           {/* Top meta */}
-          <div className="mb-12 flex items-center justify-between">
+          <div className="mb-10 flex items-center justify-between sm:mb-12">
+
             <div className="flex items-center gap-3">
-              <span className="h-px w-7 bg-yellow-400" />
+              <span className="relative h-px w-8 overflow-hidden bg-yellow-400">
+                <span className="absolute inset-y-0 left-0 w-1/2 bg-white/70 transition-transform duration-500 group-hover:translate-x-full" />
+              </span>
 
               <span
                 className={`text-[10px] font-semibold uppercase tracking-[0.24em] ${
                   lightMode
-                    ? 'text-gray-400'
-                    : 'text-gray-600'
+                    ? 'text-[#655C50]'
+                    : 'text-zinc-400'
                 }`}
               >
                 Let&apos;s build
@@ -77,127 +83,153 @@ const Footer = () => {
             </div>
 
             <span
-              className={`hidden text-[10px] uppercase tracking-[0.18em] sm:block ${
+              className={`hidden text-[10px] font-medium uppercase tracking-[0.18em] sm:block ${
                 lightMode
-                  ? 'text-gray-400'
-                  : 'text-gray-600'
+                  ? 'text-[#766D61]'
+                  : 'text-zinc-500'
               }`}
             >
               2026
             </span>
           </div>
 
-          {/* Main closing message */}
+          {/* Main content */}
           <div className="grid gap-12 lg:grid-cols-[1fr_auto] lg:items-end">
 
             <div className="max-w-3xl">
-              <h2
-                className={`text-4xl font-semibold leading-[1.02] tracking-[-0.05em] sm:text-5xl md:text-6xl lg:text-[4.5rem] ${
+
+              {/* Eyebrow */}
+              <div
+                className={`mb-5 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] ${
                   lightMode
-                    ? 'text-gray-950'
+                    ? 'border-black/[0.10] bg-white/30 text-[#554D42]'
+                    : 'border-white/[0.10] bg-white/[0.03] text-zinc-400'
+                }`}
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-yellow-400" />
+                Software · Product · Design
+              </div>
+
+              {/* Main headline */}
+              <h2
+                className={`text-4xl font-semibold leading-[0.98] tracking-[-0.055em] sm:text-5xl md:text-6xl lg:text-[4.5rem] ${
+                  lightMode
+                    ? 'text-[#171512]'
                     : 'text-white'
                 }`}
               >
                 Good products
                 <br />
-
-                <span className="text-yellow-400">
+                <span className="relative inline-block text-yellow-500">
                   start with good ideas.
                 </span>
               </h2>
 
+              {/* Description */}
               <p
-                className={`mt-7 max-w-lg text-sm leading-7 sm:text-base ${
+                className={`mt-7 max-w-xl text-sm leading-7 sm:text-base ${
                   lightMode
-                    ? 'text-gray-500'
-                    : 'text-gray-500'
+                    ? 'text-[#5C554B]'
+                    : 'text-zinc-400'
                 }`}
               >
-                Engineering, design, and product thinking —
+                Engineering, design, and product thinking;
                 brought together to build things that matter.
               </p>
             </div>
 
-            {/* Back to top */}
+            {/* =================================
+                BACK TO TOP
+            ================================== */}
             <button
               onClick={scrollToTop}
               aria-label="Back to top"
-              className={`group flex h-20 w-20 shrink-0 flex-col items-center justify-center rounded-full border transition-all duration-300 hover:-translate-y-1 ${
+              className={`group relative flex h-[84px] w-[84px] shrink-0 flex-col items-center justify-center overflow-hidden rounded-full border transition-all duration-500 hover:-translate-y-1.5 ${
                 lightMode
-                  ? 'border-black/10 text-gray-500 hover:border-yellow-400 hover:bg-yellow-400 hover:text-gray-950'
-                  : 'border-white/10 text-gray-500 hover:border-yellow-400 hover:bg-yellow-400 hover:text-gray-950'
+                  ? 'border-black/[0.13] bg-white/35 text-[#514A40] hover:border-yellow-400 hover:bg-yellow-400 hover:text-[#171512] hover:shadow-[0_12px_35px_rgba(0,0,0,0.10)]'
+                  : 'border-white/[0.12] bg-white/[0.03] text-zinc-400 hover:border-yellow-400 hover:bg-yellow-400 hover:text-zinc-950 hover:shadow-[0_12px_35px_rgba(250,204,21,0.10)]'
               }`}
             >
-              <FiArrowUp
-                size={17}
-                className="mb-1 transition-transform duration-300 group-hover:-translate-y-1"
-              />
+              {/* Hover fill */}
+              <span className="absolute inset-0 -translate-y-full bg-yellow-400 transition-transform duration-500 ease-out group-hover:translate-y-0" />
 
-              <span className="text-[8px] font-semibold uppercase tracking-[0.16em]">
-                Back top
+              <span className="relative z-10 flex flex-col items-center">
+                <FiArrowUp
+                  size={17}
+                  className="mb-1.5 transition-transform duration-500 group-hover:-translate-y-1"
+                />
+
+                <span className="text-[8px] font-bold uppercase tracking-[0.16em]">
+                  Back top
+                </span>
               </span>
             </button>
           </div>
         </div>
 
         {/* =================================
-            FOOTER NAV
+            FOOTER NAVIGATION
         ================================== */}
         <div
           className={`border-t py-7 ${
             lightMode
-              ? 'border-black/[0.08]'
-              : 'border-white/[0.07]'
+              ? 'border-black/[0.10]'
+              : 'border-white/[0.08]'
           }`}
         >
           <div className="grid gap-8 sm:grid-cols-[1fr_auto_auto] sm:items-center">
 
-            {/* Identity */}
-            <div>
+            {/* =================================
+                IDENTITY
+            ================================== */}
+            <div className="group">
               <div className="flex items-center gap-3">
+
                 <span
-                  className={`text-[10px] font-semibold uppercase tracking-[0.18em] ${
+                  className={`text-[10px] font-bold uppercase tracking-[0.18em] transition-colors duration-300 ${
                     lightMode
-                      ? 'text-gray-950'
-                      : 'text-white'
+                      ? 'text-[#24211D] group-hover:text-yellow-600'
+                      : 'text-zinc-100 group-hover:text-yellow-400'
                   }`}
                 >
                   Adeshina Adedokun
                 </span>
 
-                <span className="h-1 w-1 rounded-full bg-yellow-400" />
+                <span className="h-1 w-1 rounded-full bg-yellow-400 transition-transform duration-300 group-hover:scale-150" />
               </div>
 
               <p
                 className={`mt-2 text-[10px] ${
                   lightMode
-                    ? 'text-gray-400'
-                    : 'text-gray-600'
+                    ? 'text-[#70675B]'
+                    : 'text-zinc-500'
                 }`}
               >
                 Software Engineer · Product · Design
               </p>
             </div>
 
-            {/* Social links */}
-            <div className="flex items-center gap-5">
+            {/* =================================
+                SOCIAL LINKS
+            ================================== */}
+            <div className="flex items-center gap-2">
 
               <a
-                href="https://www.linkedin.com/in/tripleaay"
+                href="https://www.linkedin.com/in/tripleaay03"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="LinkedIn"
-                className={`group flex items-center gap-1.5 text-[10px] transition-colors duration-200 ${
+                className={`group/link flex items-center gap-1.5 rounded-full border px-3 py-2 text-[10px] font-medium transition-all duration-300 ${
                   lightMode
-                    ? 'text-gray-400 hover:text-yellow-500'
-                    : 'text-gray-600 hover:text-yellow-400'
+                    ? 'border-black/[0.09] bg-white/20 text-[#514A40] hover:-translate-y-0.5 hover:border-black/[0.16] hover:bg-white/50 hover:text-[#171512]'
+                    : 'border-white/[0.09] bg-white/[0.02] text-zinc-400 hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-white/[0.06] hover:text-white'
                 }`}
               >
                 LinkedIn
 
                 <FiArrowUpRight
                   size={10}
-                  className="transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                  className="transition-transform duration-300 group-hover/link:-translate-y-0.5 group-hover/link:translate-x-0.5"
                 />
               </a>
 
@@ -206,28 +238,31 @@ const Footer = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="GitHub"
-                className={`group flex items-center gap-1.5 text-[10px] transition-colors duration-200 ${
+                className={`group/link flex items-center gap-1.5 rounded-full border px-3 py-2 text-[10px] font-medium transition-all duration-300 ${
                   lightMode
-                    ? 'text-gray-400 hover:text-yellow-500'
-                    : 'text-gray-600 hover:text-yellow-400'
+                    ? 'border-black/[0.09] bg-white/20 text-[#514A40] hover:-translate-y-0.5 hover:border-black/[0.16] hover:bg-white/50 hover:text-[#171512]'
+                    : 'border-white/[0.09] bg-white/[0.02] text-zinc-400 hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-white/[0.06] hover:text-white'
                 }`}
               >
                 GitHub
 
                 <FiArrowUpRight
                   size={10}
-                  className="transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                  className="transition-transform duration-300 group-hover/link:-translate-y-0.5 group-hover/link:translate-x-0.5"
                 />
               </a>
             </div>
 
-            {/* Location / copyright */}
+            {/* =================================
+                LOCATION
+            ================================== */}
             <div className="sm:text-right">
+
               <p
-                className={`text-[10px] uppercase tracking-[0.16em] ${
+                className={`text-[10px] font-semibold uppercase tracking-[0.16em] ${
                   lightMode
-                    ? 'text-gray-400'
-                    : 'text-gray-600'
+                    ? 'text-[#5C554B]'
+                    : 'text-zinc-400'
                 }`}
               >
                 Lagos · Nigeria
@@ -236,8 +271,8 @@ const Footer = () => {
               <p
                 className={`mt-1 text-[9px] ${
                   lightMode
-                    ? 'text-gray-300'
-                    : 'text-gray-700'
+                    ? 'text-[#81786B]'
+                    : 'text-zinc-600'
                 }`}
               >
                 © {new Date().getFullYear()} All rights reserved.
@@ -249,39 +284,52 @@ const Footer = () => {
         {/* =================================
             FINAL MICRO BAR
         ================================== */}
-        <div className="flex items-center justify-between py-4">
+        <div
+          className={`flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between ${
+            lightMode
+              ? 'text-[#6C6459]'
+              : 'text-zinc-500'
+          }`}
+        >
 
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inset-0 animate-ping rounded-full bg-green-400 opacity-40" />
-              <span className="relative h-1.5 w-1.5 rounded-full bg-green-400" />
+          {/* Availability */}
+          <div className="flex items-center gap-2.5">
+
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inset-0 animate-ping rounded-full bg-green-400 opacity-50" />
+              <span className="relative h-2 w-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.45)]" />
             </span>
 
-            <span
-              className={`text-[8px] uppercase tracking-[0.18em] ${
-                lightMode
-                  ? 'text-gray-400'
-                  : 'text-gray-700'
-              }`}
-            >
+            <span className="text-[8px] font-semibold uppercase tracking-[0.18em]">
               Available for selected projects
             </span>
           </div>
 
+          {/* Closing detail */}
           <span
-            className={`text-[8px] uppercase tracking-[0.18em] ${
+            className={`text-[8px] font-medium uppercase tracking-[0.18em] ${
               lightMode
-                ? 'text-gray-300'
-                : 'text-gray-700'
+                ? 'text-[#81786B]'
+                : 'text-zinc-600'
             }`}
           >
             Built with intention.
           </span>
         </div>
+
+        {/* =================================
+            BOTTOM ACCENT
+        ================================== */}
+        <div
+          className={`h-px w-full ${
+            lightMode
+              ? 'bg-black/[0.07]'
+              : 'bg-white/[0.06]'
+          }`}
+        />
       </div>
     </footer>
   );
 };
 
 export default Footer;
-

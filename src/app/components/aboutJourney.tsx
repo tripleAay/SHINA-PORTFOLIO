@@ -45,14 +45,14 @@ const AboutJourney = () => {
       aria-label="My journey"
       className={`relative overflow-hidden transition-colors duration-700 ${
         lightMode
-          ? 'bg-[#D9CAB3] text-gray-950 sm:bg-[#D9CAB3]'
+          ? 'bg-[#D9CAB3] text-[#171512]'
           : 'bg-[#0b0b0d] text-white'
       }`}
     >
       {/* =====================================================
           BACKGROUND GRID
+          Extremely subtle so it never competes with content.
       ====================================================== */}
-
       <motion.div
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
@@ -60,8 +60,8 @@ const AboutJourney = () => {
         transition={{ duration: 1.1 }}
         className={`pointer-events-none absolute inset-0 ${
           lightMode
-            ? 'text-black/[0.015] sm:text-black/[0.025]'
-            : 'text-white/[0.018]'
+            ? 'text-black/[0.012]'
+            : 'text-white/[0.012]'
         }`}
         style={{
           backgroundImage:
@@ -73,7 +73,6 @@ const AboutJourney = () => {
       {/* =====================================================
           VERY SUBTLE ATMOSPHERE
       ====================================================== */}
-
       <motion.div
         initial={{
           opacity: 0,
@@ -90,21 +89,19 @@ const AboutJourney = () => {
         }}
         className={`pointer-events-none absolute left-1/2 top-[30%] h-[380px] w-[380px] -translate-x-1/2 rounded-full blur-3xl ${
           lightMode
-            ? 'bg-yellow-400/[0.006] sm:bg-yellow-400/[0.018]'
-            : 'bg-yellow-400/[0.012]'
+            ? 'bg-yellow-500/[0.012]'
+            : 'bg-yellow-400/[0.008]'
         }`}
       />
 
       {/* =====================================================
           MAIN
       ====================================================== */}
-
-      <div className="relative mx-auto max-w-6xl px-6 py-16 sm:px-8 sm:py-20 lg:px-10 lg:py-24">
+      <div className="relative mx-auto max-w-6xl px-5 py-14 sm:px-8 sm:py-20 lg:px-10 lg:py-24">
 
         {/* ===================================================
             HERO / JOURNEY INTRO
         ==================================================== */}
-
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -115,7 +112,6 @@ const AboutJourney = () => {
           className="mx-auto max-w-4xl"
         >
           {/* Label */}
-
           <motion.div
             variants={{
               hidden: {
@@ -141,14 +137,14 @@ const AboutJourney = () => {
                 duration: 0.55,
                 ease,
               }}
-              className="h-px bg-yellow-400"
+              className="h-px bg-yellow-500"
             />
 
             <span
-              className={`font-mono text-[9px] font-medium uppercase tracking-[0.22em] ${
+              className={`font-mono text-[9px] font-semibold uppercase tracking-[0.22em] ${
                 lightMode
-                  ? 'text-gray-500'
-                  : 'text-gray-500'
+                  ? 'text-[#5E554A]'
+                  : 'text-zinc-400'
               }`}
             >
               The journey
@@ -157,8 +153,8 @@ const AboutJourney = () => {
             <span
               className={`font-mono text-[9px] ${
                 lightMode
-                  ? 'text-gray-400'
-                  : 'text-gray-700'
+                  ? 'text-[#82776A]'
+                  : 'text-zinc-600'
               }`}
             >
               / 01
@@ -166,13 +162,12 @@ const AboutJourney = () => {
           </motion.div>
 
           {/* =================================================
-              TYPEWRITER HEADLINE
+              HEADLINE
           ================================================== */}
-
           <h2
             className={`max-w-4xl text-[2.65rem] font-semibold leading-[0.98] tracking-[-0.055em] sm:text-5xl md:text-6xl lg:text-[4.15rem] ${
               lightMode
-                ? 'text-gray-950'
+                ? 'text-[#171512]'
                 : 'text-white'
             }`}
           >
@@ -195,7 +190,13 @@ const AboutJourney = () => {
                 className="inline-block"
               >
                 From{' '}
-                <span className="text-yellow-500 sm:text-yellow-400">
+                <span
+                  className={
+                    lightMode
+                      ? 'text-[#B48600]'
+                      : 'text-yellow-400'
+                  }
+                >
                   design
                 </span>{' '}
                 to engineering,
@@ -219,8 +220,8 @@ const AboutJourney = () => {
               }}
               className={`mt-1 block ${
                 lightMode
-                  ? 'text-gray-800'
-                  : 'text-gray-200'
+                  ? 'text-[#302C27]'
+                  : 'text-zinc-200'
               }`}
             >
               with deeper questions ahead.
@@ -230,7 +231,6 @@ const AboutJourney = () => {
           {/* =================================================
               INTRO COPY
           ================================================== */}
-
           <motion.p
             initial={{
               opacity: 0,
@@ -249,10 +249,10 @@ const AboutJourney = () => {
               delay: 0.9,
               ease,
             }}
-            className={`mt-6 max-w-2xl text-[14px] leading-7 sm:text-[16px] sm:leading-8 ${
+            className={`mt-6 max-w-2xl text-justify text-[14px] leading-7 sm:text-left sm:text-[16px] sm:leading-8 ${
               lightMode
-                ? 'text-gray-600'
-                : 'text-gray-400'
+                ? 'text-[#4B443B]'
+                : 'text-zinc-400'
             }`}
           >
             I started by shaping how things look and evolved into
@@ -265,7 +265,6 @@ const AboutJourney = () => {
         {/* ===================================================
             JOURNEY CONTENT
         ==================================================== */}
-
         <motion.div
           initial={{
             opacity: 0,
@@ -289,7 +288,7 @@ const AboutJourney = () => {
           <div
             className={`border-t ${
               lightMode
-                ? 'border-black/[0.08]'
+                ? 'border-black/[0.12]'
                 : 'border-white/[0.07]'
             }`}
           >
@@ -298,7 +297,6 @@ const AboutJourney = () => {
               {/* =================================================
                   LEFT SIGNAL
               ================================================== */}
-
               <div className="py-6 lg:py-8">
                 <motion.div
                   initial={{
@@ -316,13 +314,17 @@ const AboutJourney = () => {
                   }}
                   className={`flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.2em] ${
                     lightMode
-                      ? 'text-gray-500'
-                      : 'text-gray-600'
+                      ? 'text-[#5E554A]'
+                      : 'text-zinc-500'
                   }`}
                 >
                   <FontAwesomeIcon
                     icon={faCode}
-                    className="text-yellow-500 sm:text-yellow-400"
+                    className={
+                      lightMode
+                        ? 'text-[#B48600]'
+                        : 'text-yellow-400'
+                    }
                   />
 
                   Background
@@ -340,10 +342,10 @@ const AboutJourney = () => {
                     duration: 0.5,
                     delay: 0.15,
                   }}
-                  className={`mt-3 max-w-[220px] text-xs leading-6 ${
+                  className={`mt-3 max-w-[220px] text-justify text-xs leading-6 sm:text-left ${
                     lightMode
-                      ? 'text-gray-500'
-                      : 'text-gray-600'
+                      ? 'text-[#554D43]'
+                      : 'text-zinc-500'
                   }`}
                 >
                   From visual communication to software systems,
@@ -354,16 +356,14 @@ const AboutJourney = () => {
               {/* =================================================
                   RIGHT STORY
               ================================================== */}
-
               <div
-                className={`py-6 text-[14px] leading-7 sm:py-8 sm:text-[15px] ${
+                className={`py-6 text-justify text-[14px] leading-7 sm:py-8 sm:text-left sm:text-[15px] sm:leading-7 ${
                   lightMode
-                    ? 'text-gray-600'
-                    : 'text-gray-400'
+                    ? 'text-[#49423A]'
+                    : 'text-zinc-400'
                 }`}
               >
                 {/* Story paragraph */}
-
                 <motion.p
                   variants={reveal}
                   initial="hidden"
@@ -374,7 +374,7 @@ const AboutJourney = () => {
                   <span
                     className={`font-semibold ${
                       lightMode
-                        ? 'text-gray-950'
+                        ? 'text-[#171512]'
                         : 'text-white'
                     }`}
                   >
@@ -387,7 +387,6 @@ const AboutJourney = () => {
                 </motion.p>
 
                 {/* Story paragraph */}
-
                 <motion.p
                   variants={reveal}
                   initial="hidden"
@@ -404,7 +403,7 @@ const AboutJourney = () => {
                   <span
                     className={`font-medium ${
                       lightMode
-                        ? 'text-gray-950'
+                        ? 'text-[#171512]'
                         : 'text-white'
                     }`}
                   >
@@ -417,7 +416,6 @@ const AboutJourney = () => {
                 {/* =================================================
                     EDUCATION SIGNAL
                 ================================================== */}
-
                 <motion.div
                   initial={{
                     opacity: 0,
@@ -437,13 +435,13 @@ const AboutJourney = () => {
                   }}
                   className={`my-6 border-y py-5 ${
                     lightMode
-                      ? 'border-black/[0.08]'
+                      ? 'border-black/[0.11]'
                       : 'border-white/[0.07]'
                   }`}
                 >
                   <div className="group flex items-start gap-4">
-                    {/* Icon */}
 
+                    {/* Icon */}
                     <motion.div
                       whileHover={{
                         scale: 1.08,
@@ -454,13 +452,17 @@ const AboutJourney = () => {
                       }}
                       className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors duration-300 ${
                         lightMode
-                          ? 'bg-black/[0.035] group-hover:bg-yellow-400/15'
+                          ? 'bg-black/[0.055] group-hover:bg-yellow-400/20'
                           : 'bg-white/[0.04] group-hover:bg-yellow-400/10'
                       }`}
                     >
                       <FontAwesomeIcon
                         icon={faGraduationCap}
-                        className="text-[10px] text-yellow-500 sm:text-yellow-400"
+                        className={
+                          lightMode
+                            ? 'text-[10px] text-[#B48600]'
+                            : 'text-[10px] text-yellow-400'
+                        }
                       />
                     </motion.div>
 
@@ -469,8 +471,8 @@ const AboutJourney = () => {
                         <span
                           className={`font-mono text-[9px] uppercase tracking-[0.18em] ${
                             lightMode
-                              ? 'text-gray-500'
-                              : 'text-gray-600'
+                              ? 'text-[#665D51]'
+                              : 'text-zinc-500'
                           }`}
                         >
                           2026
@@ -479,7 +481,7 @@ const AboutJourney = () => {
                         <span
                           className={`h-px w-5 ${
                             lightMode
-                              ? 'bg-black/10'
+                              ? 'bg-black/15'
                               : 'bg-white/10'
                           }`}
                         />
@@ -487,8 +489,8 @@ const AboutJourney = () => {
                         <span
                           className={`font-mono text-[9px] uppercase tracking-[0.18em] ${
                             lightMode
-                              ? 'text-gray-500'
-                              : 'text-gray-600'
+                              ? 'text-[#665D51]'
+                              : 'text-zinc-500'
                           }`}
                         >
                           Education
@@ -496,18 +498,18 @@ const AboutJourney = () => {
                       </div>
 
                       <p
-                        className={`mt-2 text-[13px] leading-6 ${
+                        className={`mt-2 text-justify text-[13px] leading-6 sm:text-left ${
                           lightMode
-                            ? 'text-gray-700'
-                            : 'text-gray-300'
+                            ? 'text-[#413B34]'
+                            : 'text-zinc-300'
                         }`}
                       >
                         Completed my{' '}
                         <strong
                           className={
                             lightMode
-                              ? 'font-medium text-gray-950'
-                              : 'font-medium text-white'
+                              ? 'font-semibold text-[#171512]'
+                              : 'font-semibold text-white'
                           }
                         >
                           BSc in Computer Science
@@ -518,8 +520,8 @@ const AboutJourney = () => {
                         <strong
                           className={
                             lightMode
-                              ? 'font-medium text-gray-950'
-                              : 'font-medium text-white'
+                              ? 'font-semibold text-[#171512]'
+                              : 'font-semibold text-white'
                           }
                         >
                           University of Ibadan
@@ -531,7 +533,6 @@ const AboutJourney = () => {
                 </motion.div>
 
                 {/* Final story */}
-
                 <motion.p
                   variants={reveal}
                   initial="hidden"
@@ -555,7 +556,6 @@ const AboutJourney = () => {
         {/* ===================================================
             CURRENT DIRECTION
         ==================================================== */}
-
         <motion.div
           initial={{
             opacity: 0,
@@ -578,21 +578,25 @@ const AboutJourney = () => {
           <div
             className={`group relative border-l-2 pl-5 sm:pl-6 ${
               lightMode
-                ? 'border-yellow-500/60'
+                ? 'border-[#B48600]/70'
                 : 'border-yellow-400/60'
             }`}
           >
             <div className="flex items-center gap-3">
               <FontAwesomeIcon
                 icon={faBrain}
-                className="text-[10px] text-yellow-500 sm:text-yellow-400"
+                className={
+                  lightMode
+                    ? 'text-[10px] text-[#B48600]'
+                    : 'text-[10px] text-yellow-400'
+                }
               />
 
               <span
                 className={`font-mono text-[9px] uppercase tracking-[0.2em] ${
                   lightMode
-                    ? 'text-gray-500'
-                    : 'text-gray-600'
+                    ? 'text-[#665D51]'
+                    : 'text-zinc-500'
                 }`}
               >
                 Current direction
@@ -614,20 +618,26 @@ const AboutJourney = () => {
                 delay: 0.08,
                 ease,
               }}
-              className={`mt-3 max-w-3xl text-lg font-medium leading-[1.4] tracking-[-0.02em] sm:text-xl ${
+              className={`mt-3 max-w-3xl text-justify text-lg font-medium leading-[1.5] tracking-[-0.02em] sm:text-left sm:text-xl ${
                 lightMode
-                  ? 'text-gray-900'
-                  : 'text-gray-200'
+                  ? 'text-[#24211D]'
+                  : 'text-zinc-200'
               }`}
             >
               Building practical software while going deeper
               into the{' '}
-              <span className="relative inline-block text-yellow-500 sm:text-yellow-400">
+              <span
+                className={`relative inline-block ${
+                  lightMode
+                    ? 'text-[#A67B00]'
+                    : 'text-yellow-400'
+                }`}
+              >
                 systems and intelligence
                 <span
                   className={`absolute -bottom-0.5 left-0 h-px w-0 transition-all duration-500 group-hover:w-full ${
                     lightMode
-                      ? 'bg-yellow-600'
+                      ? 'bg-[#A67B00]'
                       : 'bg-yellow-400'
                   }`}
                 />
@@ -640,7 +650,6 @@ const AboutJourney = () => {
         {/* ===================================================
             CTA
         ==================================================== */}
-
         <motion.div
           initial={{
             opacity: 0,
@@ -653,14 +662,13 @@ const AboutJourney = () => {
           }}
           transition={{
             duration: 0.5,
-            ease,
           }}
           className="mx-auto mt-10 max-w-4xl"
         >
           <div
             className={`flex flex-col gap-4 border-t pt-5 sm:flex-row sm:items-center sm:justify-between ${
               lightMode
-                ? 'border-black/[0.08]'
+                ? 'border-black/[0.11]'
                 : 'border-white/[0.07]'
             }`}
           >
@@ -668,8 +676,8 @@ const AboutJourney = () => {
               <p
                 className={`text-xs ${
                   lightMode
-                    ? 'text-gray-600'
-                    : 'text-gray-500'
+                    ? 'text-[#4D463D]'
+                    : 'text-zinc-400'
                 }`}
               >
                 Still building. Still learning.
@@ -678,8 +686,8 @@ const AboutJourney = () => {
               <p
                 className={`mt-1 text-[10px] ${
                   lightMode
-                    ? 'text-gray-500'
-                    : 'text-gray-600'
+                    ? 'text-[#6D6458]'
+                    : 'text-zinc-600'
                 }`}
               >
                 The work tells the rest of the story.
@@ -689,7 +697,6 @@ const AboutJourney = () => {
             {/* =================================================
                 CTA BUTTON
             ================================================== */}
-
             <motion.button
               onClick={scrollToProjects}
               whileHover="hover"
@@ -699,8 +706,8 @@ const AboutJourney = () => {
               <span
                 className={`relative text-[12px] font-semibold ${
                   lightMode
-                    ? 'text-gray-900'
-                    : 'text-gray-200'
+                    ? 'text-[#24211D]'
+                    : 'text-zinc-200'
                 }`}
               >
                 Explore my work
@@ -708,7 +715,7 @@ const AboutJourney = () => {
                 <span
                   className={`absolute -bottom-1 left-0 h-px w-0 transition-all duration-300 group-hover:w-full ${
                     lightMode
-                      ? 'bg-yellow-600'
+                      ? 'bg-[#A67B00]'
                       : 'bg-yellow-400'
                   }`}
                 />
@@ -718,9 +725,7 @@ const AboutJourney = () => {
                 variants={{
                   hover: {
                     x: 4,
-                    backgroundColor: lightMode
-                      ? '#facc15'
-                      : '#facc15',
+                    backgroundColor: '#facc15',
                     color: '#09090b',
                   },
                 }}
@@ -730,7 +735,7 @@ const AboutJourney = () => {
                 }}
                 className={`flex h-8 w-8 items-center justify-center rounded-full border ${
                   lightMode
-                    ? 'border-black/10'
+                    ? 'border-black/15'
                     : 'border-white/10'
                 }`}
               >

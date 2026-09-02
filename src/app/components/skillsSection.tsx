@@ -5,7 +5,6 @@ import { useContext } from 'react';
 import { motion } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faArrowUpRightFromSquare,
   faCode,
   faLayerGroup,
   faPuzzlePiece,
@@ -19,40 +18,42 @@ const skillGroups = [
   {
     number: '01',
     title: 'Engineering',
-    description: 'Building the systems behind modern web products.',
+    description: 'Modern web systems and applications.',
     icon: faCode,
     skills: [
       'React',
       'Next.js',
       'TypeScript',
+      'JavaScript',
       'Node.js',
-      'Firebase',
       'Supabase',
     ],
   },
   {
     number: '02',
     title: 'Product',
-    description: 'Turning ideas into reliable, usable digital products.',
+    description: 'Reliable systems built around real needs.',
     icon: faPuzzlePiece,
     skills: [
-      'APIs',
-      'Architecture',
+      'REST APIs',
+      'System Architecture',
       'Authentication',
       'Payments',
-      'Responsive UI',
+      'Fintech',
+      'E-commerce',
     ],
   },
   {
     number: '03',
-    title: 'Design',
-    description: 'Designing experiences with clarity and visual intent.',
+    title: 'Design + AI',
+    description: 'Interfaces, identity, and intelligent workflows.',
     icon: faLayerGroup,
     skills: [
       'UI/UX',
       'Figma',
       'Brand Design',
-      'Adobe Creative Suite',
+      'AI Integration',
+      'Automation',
     ],
   },
 ];
@@ -64,24 +65,18 @@ const SkillsSection = () => {
     <section
       id="skills"
       aria-labelledby="skills-title"
-      className={`relative overflow-hidden transition-colors duration-700 ${
+      className={`relative overflow-hidden transition-colors duration-500 ${
         lightMode
-          ? 'bg-[#D9CAB3] text-gray-950'
+          ? 'bg-[#EAEAEA] text-gray-950'
           : 'bg-[#0b0b0d] text-white'
       }`}
     >
-      {/* =====================================================
-          BACKGROUND GRID
-      ====================================================== */}
+      {/* Background grid */}
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 1 }}
+      <div
         className={`pointer-events-none absolute inset-0 ${
           lightMode
-            ? 'text-black/[0.018]'
+            ? 'text-black/[0.025]'
             : 'text-white/[0.018]'
         }`}
         style={{
@@ -91,141 +86,90 @@ const SkillsSection = () => {
         }}
       />
 
-      {/* =====================================================
-          AMBIENT GLOW
-      ====================================================== */}
+      {/* Ambient glow */}
 
-      <motion.div
-        initial={{
-          opacity: 0,
-          scale: 0.8,
-        }}
-        whileInView={{
-          opacity: 1,
-          scale: 1,
-        }}
-        viewport={{ once: true }}
-        transition={{
-          duration: 1.4,
-          ease,
-        }}
-        className={`pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl ${
+      <div
+        className={`pointer-events-none absolute left-1/2 top-1/2 h-[320px] w-[320px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl ${
           lightMode
-            ? 'bg-yellow-400/[0.018]'
-            : 'bg-yellow-400/[0.018]'
+            ? 'bg-yellow-400/[0.035]'
+            : 'bg-yellow-400/[0.025]'
         }`}
       />
 
-      {/* =====================================================
-          MAIN
-      ====================================================== */}
+      <div className="relative mx-auto max-w-6xl px-5 py-14 sm:px-8 sm:py-18 lg:px-10 lg:py-20">
 
-      <div className="relative mx-auto max-w-6xl px-6 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-28">
-
-        {/* ===================================================
-            HEADER
-        ==================================================== */}
+        {/* Header */}
 
         <motion.div
-          initial={{
-            opacity: 0,
-            y: 16,
-          }}
-          whileInView={{
-            opacity: 1,
-            y: 0,
-          }}
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{
             once: true,
-            margin: '-80px',
+            margin: '-60px',
           }}
           transition={{
-            duration: 0.6,
+            duration: 0.5,
             ease,
           }}
-          className={`flex flex-col gap-5 border-b pb-7 sm:flex-row sm:items-end sm:justify-between ${
+          className={`border-b pb-6 ${
             lightMode
-              ? 'border-black/[0.1]'
+              ? 'border-black/[0.10]'
               : 'border-white/[0.08]'
           }`}
         >
-          <div>
-            {/* Section label */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
 
-            <div className="mb-4 flex items-center gap-3">
-              <motion.span
-                initial={{ width: 0 }}
-                whileInView={{ width: 28 }}
-                viewport={{ once: true }}
-                transition={{
-                  duration: 0.5,
-                  ease,
-                }}
-                className="h-px bg-yellow-400"
-              />
+            <div>
+              <div className="mb-3 flex items-center justify-center gap-3 sm:justify-start">
+                <span className="h-px w-6 bg-yellow-400" />
 
-              <span
-                className={`font-mono text-[9px] font-medium uppercase tracking-[0.24em] ${
+                <span
+                  className={`font-mono text-[9px] font-semibold uppercase tracking-[0.22em] ${
+                    lightMode
+                      ? 'text-[#514a41]'
+                      : 'text-gray-500'
+                  }`}
+                >
+                  Capabilities
+                </span>
+              </div>
+
+              <h2
+                id="skills-title"
+                className={`text-center text-[2rem] font-semibold leading-none tracking-[-0.055em] sm:text-left sm:text-4xl md:text-[2.7rem] ${
                   lightMode
-                    ? 'text-gray-500'
-                    : 'text-gray-500'
+                    ? 'text-[#171513]'
+                    : 'text-white'
                 }`}
               >
-                Capabilities
-              </span>
+                What I work with
+                <span className="text-yellow-500">
+                  .
+                </span>
+              </h2>
             </div>
 
-            {/* Title */}
-
-            <h2
-              id="skills-title"
-              className={`text-3xl font-semibold tracking-[-0.045em] sm:text-4xl md:text-[2.7rem] ${
+            <span
+              className={`hidden font-mono text-[9px] uppercase tracking-[0.18em] sm:block ${
                 lightMode
-                  ? 'text-gray-950'
-                  : 'text-white'
+                  ? 'text-[#71685d]'
+                  : 'text-gray-600'
               }`}
             >
-              What I work with
-              <span className="text-yellow-500 sm:text-yellow-400">
-                .
-              </span>
-            </h2>
-          </div>
-
-          {/* Header metadata */}
-
-          <div
-            className={`flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.18em] ${
-              lightMode
-                ? 'text-gray-500'
-                : 'text-gray-600'
-            }`}
-          >
-            <span>Stack</span>
-
-            <span
-              className={`h-px w-6 ${
-                lightMode
-                  ? 'bg-black/10'
-                  : 'bg-white/10'
-              }`}
-            />
-
-            <span>03 areas</span>
+              Engineering · Product · Design
+            </span>
           </div>
         </motion.div>
 
-        {/* ===================================================
-            SKILL GROUPS
-        ==================================================== */}
+        {/* Skill groups */}
 
         <div>
-          {skillGroups.map((group, groupIndex) => (
-            <motion.div
+          {skillGroups.map((group, index) => (
+            <motion.article
               key={group.number}
               initial={{
                 opacity: 0,
-                y: 24,
+                y: 14,
               }}
               whileInView={{
                 opacity: 1,
@@ -233,60 +177,41 @@ const SkillsSection = () => {
               }}
               viewport={{
                 once: true,
-                margin: '-70px',
+                margin: '-50px',
               }}
               transition={{
-                duration: 0.65,
-                delay: groupIndex * 0.08,
+                duration: 0.5,
+                delay: index * 0.07,
                 ease,
               }}
-              className={`group relative border-b ${
+              className={`group relative border-b py-7 sm:py-8 ${
                 lightMode
-                  ? 'border-black/[0.1]'
+                  ? 'border-black/[0.10]'
                   : 'border-white/[0.08]'
               }`}
             >
-              {/* =================================================
-                  ROW
-              ================================================== */}
+              <div className="grid gap-5 md:grid-cols-[52px_240px_1fr] md:items-center md:gap-8">
 
-              <div className="grid gap-6 py-8 md:grid-cols-[64px_220px_1fr] md:items-start md:gap-8 lg:py-9">
+                {/* Number */}
 
-                {/* =================================================
-                    NUMBER
-                ================================================== */}
-
-                <div className="flex items-center gap-3 md:block">
+                <div className="flex items-center justify-center gap-2 md:justify-start">
                   <span
-                    className={`font-mono text-[10px] tracking-[0.16em] transition-colors duration-300 ${
+                    className={`font-mono text-[9px] tracking-[0.15em] transition-colors duration-300 ${
                       lightMode
-                        ? 'text-gray-500 group-hover:text-yellow-600'
+                        ? 'text-[#71685d] group-hover:text-yellow-600'
                         : 'text-gray-600 group-hover:text-yellow-400'
                     }`}
                   >
                     {group.number}
                   </span>
 
-                  <motion.span
-                    initial={{ width: 0 }}
-                    whileInView={{ width: 18 }}
-                    viewport={{ once: true }}
-                    transition={{
-                      duration: 0.5,
-                      delay: 0.15 + groupIndex * 0.08,
-                      ease,
-                    }}
-                    className="hidden h-px bg-yellow-400 md:mt-4 md:block"
-                  />
+                  <span className="h-px w-4 bg-yellow-400" />
                 </div>
 
-                {/* =================================================
-                    CATEGORY
-                ================================================== */}
+                {/* Category */}
 
-                <div>
-                  <div className="flex items-center gap-3">
-                    {/* Icon */}
+                <div className="text-center md:text-left">
+                  <div className="flex items-center justify-center gap-3 md:justify-start">
 
                     <motion.div
                       whileHover={{
@@ -296,9 +221,9 @@ const SkillsSection = () => {
                       transition={{
                         duration: 0.2,
                       }}
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors duration-300 ${
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors duration-300 ${
                         lightMode
-                          ? 'bg-black/[0.035] group-hover:bg-yellow-400/15'
+                          ? 'bg-black/[0.04] group-hover:bg-yellow-400/15'
                           : 'bg-white/[0.04] group-hover:bg-yellow-400/10'
                       }`}
                     >
@@ -306,16 +231,16 @@ const SkillsSection = () => {
                         icon={group.icon}
                         className={`text-[10px] transition-colors duration-300 ${
                           lightMode
-                            ? 'text-gray-500 group-hover:text-yellow-600'
+                            ? 'text-[#514a41] group-hover:text-yellow-600'
                             : 'text-gray-500 group-hover:text-yellow-400'
                         }`}
                       />
                     </motion.div>
 
                     <h3
-                      className={`text-lg font-semibold tracking-[-0.02em] transition-colors duration-300 ${
+                      className={`text-base font-semibold tracking-[-0.025em] transition-colors duration-300 sm:text-lg ${
                         lightMode
-                          ? 'text-gray-950 group-hover:text-yellow-700'
+                          ? 'text-[#171513] group-hover:text-yellow-700'
                           : 'text-gray-100 group-hover:text-yellow-400'
                       }`}
                     >
@@ -324,9 +249,9 @@ const SkillsSection = () => {
                   </div>
 
                   <p
-                    className={`mt-3 max-w-[210px] text-[11px] leading-5 transition-colors duration-300 ${
+                    className={`mt-1.5 text-[10px] leading-5 ${
                       lightMode
-                        ? 'text-gray-500'
+                        ? 'text-[#71685d]'
                         : 'text-gray-600'
                     }`}
                   >
@@ -334,136 +259,79 @@ const SkillsSection = () => {
                   </p>
                 </div>
 
-                {/* =================================================
-                    SKILLS
-                ================================================== */}
+                {/* Skills */}
 
-                <div className="flex flex-wrap gap-2">
-                  {group.skills.map((skill, skillIndex) => (
-                    <motion.div
-                      key={skill}
-                      initial={{
-                        opacity: 0,
-                        y: 8,
-                      }}
-                      whileInView={{
-                        opacity: 1,
-                        y: 0,
-                      }}
-                      viewport={{
-                        once: true,
-                      }}
-                      transition={{
-                        duration: 0.4,
-                        delay:
-                          0.18 +
-                          groupIndex * 0.08 +
-                          skillIndex * 0.045,
-                        ease,
-                      }}
-                      whileHover={{
-                        y: -2,
-                      }}
-                      className={`group/skill relative cursor-default overflow-hidden rounded-full border px-3.5 py-2 text-[11px] font-medium transition-all duration-300 ${
-                        lightMode
-                          ? 'border-black/[0.1] bg-black/[0.015] text-gray-600 hover:border-yellow-600/40 hover:bg-yellow-400/10 hover:text-gray-950'
-                          : 'border-white/[0.09] bg-white/[0.015] text-gray-400 hover:border-yellow-400/30 hover:bg-yellow-400/[0.06] hover:text-gray-100'
-                      }`}
-                    >
-                      {/* Hover sweep */}
-
-                      <span
-                        className={`absolute inset-0 -translate-x-full transition-transform duration-500 group-hover/skill:translate-x-0 ${
+                <div className="flex flex-wrap justify-center gap-x-2 gap-y-2 md:justify-start">
+                  {group.skills.map(
+                    (skill, skillIndex) => (
+                      <motion.span
+                        key={skill}
+                        initial={{
+                          opacity: 0,
+                          y: 5,
+                        }}
+                        whileInView={{
+                          opacity: 1,
+                          y: 0,
+                        }}
+                        viewport={{
+                          once: true,
+                        }}
+                        transition={{
+                          duration: 0.3,
+                          delay:
+                            index * 0.07 +
+                            skillIndex * 0.035,
+                          ease,
+                        }}
+                        whileHover={{
+                          y: -2,
+                        }}
+                        className={`rounded-full border px-3 py-1.5 text-[9px] font-medium transition-all duration-300 ${
                           lightMode
-                            ? 'bg-yellow-400/[0.06]'
-                            : 'bg-yellow-400/[0.035]'
+                            ? 'border-black/[0.11] bg-white/30 text-[#514a41] hover:border-yellow-600/40 hover:bg-yellow-400/10 hover:text-[#171513]'
+                            : 'border-white/[0.08] bg-white/[0.025] text-gray-400 hover:border-yellow-400/30 hover:bg-yellow-400/[0.05] hover:text-white'
                         }`}
-                      />
-
-                      <span className="relative">
+                      >
                         {skill}
-                      </span>
-                    </motion.div>
-                  ))}
+                      </motion.span>
+                    )
+                  )}
                 </div>
               </div>
 
-              {/* =================================================
-                  HOVER EDGE
-              ================================================== */}
+              {/* Hover line */}
 
-              <motion.div
-                initial={{ scaleX: 0 }}
-                whileHover={{ scaleX: 1 }}
+              <motion.span
+                initial={{
+                  scaleX: 0,
+                }}
+                whileHover={{
+                  scaleX: 1,
+                }}
                 transition={{
-                  duration: 0.35,
+                  duration: 0.3,
                   ease,
                 }}
                 className="absolute bottom-[-1px] left-0 h-px w-full origin-left bg-yellow-400"
               />
-            </motion.div>
+            </motion.article>
           ))}
         </div>
 
-        {/* ===================================================
-            BOTTOM SIGNAL
-        ==================================================== */}
+        {/* Bottom signal */}
 
-        <motion.div
-          initial={{
-            opacity: 0,
-          }}
-          whileInView={{
-            opacity: 1,
-          }}
-          viewport={{ once: true }}
-          transition={{
-            duration: 0.5,
-            delay: 0.15,
-          }}
-          className="flex items-center justify-between pt-6"
+        <div
+          className={`pt-5 text-center sm:text-left ${
+            lightMode
+              ? 'text-[#71685d]'
+              : 'text-gray-600'
+          }`}
         >
-          <span
-            className={`font-mono text-[9px] uppercase tracking-[0.18em] ${
-              lightMode
-                ? 'text-gray-500'
-                : 'text-gray-600'
-            }`}
-          >
-            Engineering · Product · Design
+          <span className="font-mono text-[8px] uppercase tracking-[0.18em]">
+            React · Next.js · TypeScript · Node.js
           </span>
-
-          <motion.button
-            whileHover="hover"
-            whileTap={{ scale: 0.98 }}
-            className={`group hidden items-center gap-2 text-[10px] font-medium uppercase tracking-[0.15em] sm:flex ${
-              lightMode
-                ? 'text-gray-500'
-                : 'text-gray-600'
-            }`}
-          >
-            <span className="transition-colors duration-300 group-hover:text-yellow-500">
-              Full-stack
-            </span>
-
-            <motion.span
-              variants={{
-                hover: {
-                  x: 3,
-                  y: -3,
-                },
-              }}
-              transition={{
-                duration: 0.2,
-              }}
-            >
-              <FontAwesomeIcon
-                icon={faArrowUpRightFromSquare}
-                className="text-[8px]"
-              />
-            </motion.span>
-          </motion.button>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

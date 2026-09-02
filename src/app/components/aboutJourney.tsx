@@ -45,7 +45,7 @@ const AboutJourney = () => {
       aria-label="My journey"
       className={`relative overflow-hidden transition-colors duration-700 ${
         lightMode
-          ? 'bg-[#F4DBD8] text-gray-950 sm:bg-[#D9CAB3]/40'
+          ? 'bg-[#D9CAB3] text-gray-950 sm:bg-[#D9CAB3]'
           : 'bg-[#0b0b0d] text-white'
       }`}
     >

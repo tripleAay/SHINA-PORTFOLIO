@@ -1,16 +1,11 @@
 'use client';
 
-import React, {
-  useContext,
-  useState,
-} from 'react';
-import { ThemeContext } from '../contexts/ThemeContext';
+import React, { useContext, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiArrowUpRight } from 'react-icons/fi';
-import {
-  toast,
-  ToastContainer,
-} from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
+
+import { ThemeContext } from '../contexts/ThemeContext';
 import { createClient } from '../lib/client';
 
 interface FormData {
@@ -18,6 +13,8 @@ interface FormData {
   email: string;
   message: string;
 }
+
+const ease = [0.16, 1, 0.3, 1] as const;
 
 const ContactForm: React.FC = () => {
   const { lightMode } = useContext(ThemeContext);
@@ -28,8 +25,7 @@ const ContactForm: React.FC = () => {
     message: '',
   });
 
-  const [isSubmitting, setIsSubmitting] =
-    useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -44,119 +40,261 @@ const ContactForm: React.FC = () => {
     }));
   };
 
+  const showToast = (
+    type: 'success' | 'error',
+    message: string
+  ) => {
+    const options = {
+      position: 'top-right' as const,
+      autoClose: type === 'success' ? 5000 : 7000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      theme: lightMode ? 'light' : ('dark' as const),
+    };
+
+    if (type === 'success') {
+      toast.success(message, options);
+    } else {
+      toast.error(message, options);
+    }
+  };
+
   const handleSubmit = async (
     e: React.FormEvent<HTMLFormElement>
   ) => {
     e.preventDefault();
 
-    // Prevent accidental double submission
-    if (isSubmitting) return;
+    if (isSubmitting) {
+      return;
+    }
 
-    // Basic validation
     const name = formData.name.trim();
     const email = formData.email.trim();
     const message = formData.message.trim();
 
     if (!name || !email || !message) {
-      toast.error(
-        'Please complete all fields before sending.',
-        {
-          position: 'top-right',
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          theme: lightMode ? 'light' : 'dark',
-        }
+      showToast(
+        'error',
+        'Please complete all fields before sending.'
       );
+      return;
+    }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
+      showToast(
+        'error',
+        'Please enter a valid email address.'
+      );
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      /*
-       * IMPORTANT:
-       * Create the Supabase browser client only when
-       * the user submits the form.
-       *
-       * This prevents Supabase from being initialized
-       * during Next.js/Vercel static prerendering.
-       */
       const supabase = createClient();
 
-      const { error: supabaseError } =
-        await supabase
-          .from('messages')
-          .insert([
-            {
-              name,
-              email,
-              message,
-            },
-          ]);
+      const { error: supabaseError } = await supabase
+        .from('messages')
+        .insert({
+          name,
+          email,
+          message,
+        });
 
       if (supabaseError) {
-        console.error(
-          'Supabase error:',
-          supabaseError
-        );
+        const errorMessage =
+          typeof supabaseError.message === 'string'
+            ? supabaseError.message
+            : '';
 
-        toast.error(
-          'Unable to send your message. Please try again.',
-          {
-            position: 'top-right',
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            theme: lightMode ? 'light' : 'dark',
-          }
-        );
+        const errorDetails =
+          typeof supabaseError.details === 'string'
+            ? supabaseError.details
+            : '';
+
+        const errorHint =
+          typeof supabaseError.hint === 'string'
+            ? supabaseError.hint
+            : '';
+
+        const errorCode =
+          typeof supabaseError.code === 'string'
+            ? supabaseError.code
+            : '';
+
+        const errorStatus =
+          'status' in supabaseError &&
+          typeof (
+            supabaseError as {
+              status?: unknown;
+            }
+          ).status === 'number'
+            ? String(
+                (
+                  supabaseError as {
+                    status?: number;
+                  }
+                ).status
+              )
+            : '';
+
+        /*
+         * Diagnostic information.
+         *
+         * This intentionally uses string concatenation instead
+         * of nested template literals so there is no parsing
+         * ambiguity in this section.
+         */
+        const diagnosticMessage = [
+          '[Supabase contact form]',
+          '',
+          'Message: ' +
+            (errorMessage || 'No message returned'),
+          'Details: ' +
+            (errorDetails || 'No details returned'),
+          'Hint: ' +
+            (errorHint || 'No hint returned'),
+          'Code: ' +
+            (errorCode || 'No code returned'),
+          'Status: ' +
+            (errorStatus || 'No status returned'),
+        ].join('\n');
+
+        console.log(diagnosticMessage);
+
+        let userMessage =
+          errorMessage ||
+          'Unable to send your message. Please try again.';
+
+        /*
+         * Row Level Security
+         */
+        if (
+          errorCode === '42501' ||
+          errorMessage
+            .toLowerCase()
+            .includes('row-level security') ||
+          errorMessage
+            .toLowerCase()
+            .includes('permission denied')
+        ) {
+          userMessage =
+            'Your message could not be sent because the contact form permissions need to be configured in Supabase.';
+        }
+
+        /*
+         * Missing column / schema mismatch
+         */
+        if (
+          errorCode === 'PGRST204' ||
+          errorMessage
+            .toLowerCase()
+            .includes('column') ||
+          errorMessage
+            .toLowerCase()
+            .includes('schema cache')
+        ) {
+          userMessage =
+            'The contact form does not match the current messages table in Supabase.';
+        }
+
+        /*
+         * Missing messages table
+         */
+        if (
+          errorCode === '42P01' ||
+          (
+            errorMessage
+              .toLowerCase()
+              .includes('relation') &&
+            errorMessage
+              .toLowerCase()
+              .includes('does not exist')
+          )
+        ) {
+          userMessage =
+            'The messages table could not be found in Supabase.';
+        }
+
+        /*
+         * Authentication error
+         */
+        if (
+          errorCode === '401' ||
+          errorStatus === '401'
+        ) {
+          userMessage =
+            'The contact form could not authenticate with Supabase. Please try again.';
+        }
+
+        /*
+         * Supabase server error
+         */
+        if (
+          errorStatus === '500' ||
+          errorCode === 'PGRST500'
+        ) {
+          userMessage =
+            'Supabase is temporarily unavailable. Please try again shortly.';
+        }
+
+        showToast('error', userMessage);
 
         return;
       }
 
-      toast.success(
-        "Message received. I'll be in touch.",
-        {
-          position: 'top-right',
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          theme: lightMode ? 'light' : 'dark',
-        }
+      /*
+       * Successful submission
+       */
+      showToast(
+        'success',
+        "Message received. I'll be in touch."
       );
 
-      // Clear form after successful submission
       setFormData({
         name: '',
         email: '',
         message: '',
       });
     } catch (error) {
-      console.error(
-        'Contact form error:',
-        error
+      let errorMessage =
+        'Something went wrong. Please try again.';
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else {
+        try {
+          const serializedError = JSON.stringify(
+            error,
+            Object.getOwnPropertyNames(
+              Object(error)
+            ),
+            2
+          );
+
+          if (
+            serializedError &&
+            serializedError !== '{}'
+          ) {
+            errorMessage = serializedError;
+          }
+        } catch {
+          // Keep the default error message.
+        }
+      }
+
+      console.log(
+        '[Contact form unexpected error]',
+        errorMessage
       );
 
-      toast.error(
-        'Something went wrong. Please try again.',
-        {
-          position: 'top-right',
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          theme: lightMode ? 'light' : 'dark',
-        }
-      );
+      showToast('error', errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -168,31 +306,18 @@ const ContactForm: React.FC = () => {
       aria-labelledby="contact-title"
       className={`relative overflow-hidden transition-colors duration-500 ${
         lightMode
-          ? 'bg-[#D9CAB3]/40 text-gray-950'
+          ? 'bg-[#D9CAB3] text-gray-950'
           : 'bg-[#0b0b0d] text-white'
       }`}
     >
-      {/* =================================
-          TOAST NOTIFICATIONS
-      ================================== */}
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        newestOnTop
-        closeOnClick
-        pauseOnHover
-        draggable
-        theme={lightMode ? 'light' : 'dark'}
-      />
+      <ToastContainer />
 
-      {/* =================================
-          SUBTLE BACKGROUND GRID
-      ================================== */}
+      {/* Background grid */}
       <div
-        className={`pointer-events-none absolute inset-0 opacity-[0.025] ${
+        className={`pointer-events-none absolute inset-0 ${
           lightMode
-            ? 'text-black'
-            : 'text-white'
+            ? 'text-black/[0.035]'
+            : 'text-white/[0.02]'
         }`}
         style={{
           backgroundImage:
@@ -201,39 +326,51 @@ const ContactForm: React.FC = () => {
         }}
       />
 
-      {/* =================================
-          SUBTLE RADIAL GLOW
-      ================================== */}
+      {/* Subtle glow */}
       <div
-        className={`pointer-events-none absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl transition-opacity duration-500 ${
+        className={`pointer-events-none absolute left-1/2 top-[35%] h-[420px] w-[420px] -translate-x-1/2 rounded-full blur-3xl ${
           lightMode
-            ? 'bg-yellow-400/[0.035]'
+            ? 'bg-yellow-400/[0.045]'
             : 'bg-yellow-400/[0.025]'
         }`}
       />
 
-      <div className="relative mx-auto max-w-5xl px-6 py-28 sm:px-8 md:py-36 lg:px-10 lg:py-44">
-        {/* =================================
-            SECTION LABEL
-        ================================== */}
-        <div className="mb-16 flex items-center gap-3">
-          <span className="h-px w-7 bg-yellow-400" />
+      <div className="relative mx-auto max-w-5xl px-5 py-16 sm:px-8 sm:py-20 lg:px-10 lg:py-24">
+        {/* Section label */}
+        <motion.div
+          initial={{
+            opacity: 0,
+            y: 10,
+          }}
+          whileInView={{
+            opacity: 1,
+            y: 0,
+          }}
+          viewport={{
+            once: true,
+            margin: '-60px',
+          }}
+          transition={{
+            duration: 0.5,
+            ease,
+          }}
+          className="mb-12 flex items-center justify-center gap-3 sm:justify-start"
+        >
+          <span className="h-px w-6 bg-yellow-400" />
 
           <span
-            className={`text-[10px] font-semibold uppercase tracking-[0.24em] transition-colors duration-500 ${
+            className={`font-mono text-[9px] font-semibold uppercase tracking-[0.22em] ${
               lightMode
-                ? 'text-gray-400'
+                ? 'text-[#3f3932]'
                 : 'text-gray-500'
             }`}
           >
             Contact
           </span>
-        </div>
+        </motion.div>
 
-        {/* =================================
-            INTRO
-        ================================== */}
-        <div className="max-w-2xl">
+        {/* Heading */}
+        <div className="mx-auto max-w-3xl text-center sm:mx-0 sm:text-left">
           <motion.h2
             id="contact-title"
             initial={{
@@ -246,21 +383,22 @@ const ContactForm: React.FC = () => {
             }}
             viewport={{
               once: true,
-              margin: '-80px',
+              margin: '-60px',
             }}
             transition={{
               duration: 0.6,
-              ease: 'easeOut',
+              ease,
             }}
-            className={`text-4xl font-semibold leading-[1.05] tracking-[-0.045em] transition-colors duration-500 sm:text-5xl md:text-6xl ${
+            className={`text-[2.45rem] font-semibold leading-[1.03] tracking-[-0.055em] sm:text-5xl md:text-6xl ${
               lightMode
-                ? 'text-gray-950'
+                ? 'text-[#171513]'
                 : 'text-white'
             }`}
           >
             Have something
             <br />
-            <span className="text-yellow-400">
+
+            <span className="text-yellow-500">
               worth building?
             </span>
           </motion.h2>
@@ -276,31 +414,29 @@ const ContactForm: React.FC = () => {
             }}
             viewport={{
               once: true,
-              margin: '-80px',
+              margin: '-60px',
             }}
             transition={{
-              duration: 0.6,
+              duration: 0.5,
               delay: 0.08,
-              ease: 'easeOut',
+              ease,
             }}
-            className={`mt-7 max-w-lg text-sm leading-7 transition-colors duration-500 sm:text-base ${
+            className={`mx-auto mt-5 max-w-md text-[13px] leading-6 sm:mx-0 sm:text-base sm:leading-7 ${
               lightMode
-                ? 'text-gray-500'
+                ? 'text-[#514a41]'
                 : 'text-gray-400'
             }`}
           >
-            Tell me what you&apos;re working on.
-            Let&apos;s see where it goes.
+            Tell me what you&apos;re working on. Let&apos;s
+            see where it goes.
           </motion.p>
         </div>
 
-        {/* =================================
-            FORM
-        ================================== */}
+        {/* Form */}
         <motion.div
           initial={{
             opacity: 0,
-            y: 20,
+            y: 18,
           }}
           whileInView={{
             opacity: 1,
@@ -308,30 +444,28 @@ const ContactForm: React.FC = () => {
           }}
           viewport={{
             once: true,
-            margin: '-60px',
+            margin: '-50px',
           }}
           transition={{
-            duration: 0.7,
-            delay: 0.15,
-            ease: 'easeOut',
+            duration: 0.6,
+            delay: 0.12,
+            ease,
           }}
-          className="mt-20 max-w-3xl"
+          className="mx-auto mt-14 max-w-3xl sm:mx-0 sm:mt-16"
         >
           <form
             onSubmit={handleSubmit}
-            className="space-y-10"
+            className="space-y-9 sm:space-y-10"
           >
-            {/* =================================
-                NAME + EMAIL
-            ================================== */}
-            <div className="grid gap-10 sm:grid-cols-2">
+            {/* Name + Email */}
+            <div className="grid gap-8 sm:grid-cols-2 sm:gap-10">
               {/* Name */}
               <div>
                 <label
                   htmlFor="name"
-                  className={`mb-3 block text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors duration-500 ${
+                  className={`mb-3 block text-[10px] font-bold uppercase tracking-[0.18em] ${
                     lightMode
-                      ? 'text-gray-400'
+                      ? 'text-[#3f3932]'
                       : 'text-gray-500'
                   }`}
                 >
@@ -340,18 +474,17 @@ const ContactForm: React.FC = () => {
 
                 <input
                   id="name"
-                  type="text"
                   name="name"
+                  type="text"
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="Your name"
-                  required
                   autoComplete="name"
                   disabled={isSubmitting}
-                  className={`w-full border-0 border-b bg-transparent px-0 py-3 text-sm outline-none transition-colors placeholder:text-gray-500 focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 ${
+                  className={`w-full border-0 border-b bg-transparent px-0 py-3.5 text-base outline-none transition-all duration-300 placeholder:text-[13px] placeholder:opacity-60 focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm ${
                     lightMode
-                      ? 'border-black/10 text-gray-950 focus:border-yellow-500'
-                      : 'border-white/10 text-white focus:border-yellow-400'
+                      ? 'border-black/20 text-[#171513] placeholder:text-[#514a41] focus:border-yellow-600'
+                      : 'border-white/10 text-white placeholder:text-gray-500 focus:border-yellow-400'
                   }`}
                 />
               </div>
@@ -360,9 +493,9 @@ const ContactForm: React.FC = () => {
               <div>
                 <label
                   htmlFor="email"
-                  className={`mb-3 block text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors duration-500 ${
+                  className={`mb-3 block text-[10px] font-bold uppercase tracking-[0.18em] ${
                     lightMode
-                      ? 'text-gray-400'
+                      ? 'text-[#3f3932]'
                       : 'text-gray-500'
                   }`}
                 >
@@ -371,32 +504,29 @@ const ContactForm: React.FC = () => {
 
                 <input
                   id="email"
-                  type="email"
                   name="email"
+                  type="email"
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="you@example.com"
-                  required
                   autoComplete="email"
                   disabled={isSubmitting}
-                  className={`w-full border-0 border-b bg-transparent px-0 py-3 text-sm outline-none transition-colors placeholder:text-gray-500 focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 ${
+                  className={`w-full border-0 border-b bg-transparent px-0 py-3.5 text-base outline-none transition-all duration-300 placeholder:text-[13px] placeholder:opacity-60 focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm ${
                     lightMode
-                      ? 'border-black/10 text-gray-950 focus:border-yellow-500'
-                      : 'border-white/10 text-white focus:border-yellow-400'
+                      ? 'border-black/20 text-[#171513] placeholder:text-[#514a41] focus:border-yellow-600'
+                      : 'border-white/10 text-white placeholder:text-gray-500 focus:border-yellow-400'
                   }`}
                 />
               </div>
             </div>
 
-            {/* =================================
-                MESSAGE
-            ================================== */}
+            {/* Message */}
             <div>
               <label
                 htmlFor="message"
-                className={`mb-3 block text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors duration-500 ${
+                className={`mb-3 block text-[10px] font-bold uppercase tracking-[0.18em] ${
                   lightMode
-                    ? 'text-gray-400'
+                    ? 'text-[#3f3932]'
                     : 'text-gray-500'
                 }`}
               >
@@ -406,36 +536,33 @@ const ContactForm: React.FC = () => {
               <textarea
                 id="message"
                 name="message"
+                rows={4}
                 value={formData.message}
                 onChange={handleChange}
-                placeholder="What are you building?"
-                rows={4}
-                required
+                placeholder="Tell me a little about the project..."
                 disabled={isSubmitting}
-                className={`w-full resize-none border-0 border-b bg-transparent px-0 py-3 text-sm leading-7 outline-none transition-colors placeholder:text-gray-500 focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 ${
+                className={`w-full resize-none border-0 border-b bg-transparent px-0 py-3.5 text-base leading-7 outline-none transition-all duration-300 placeholder:text-[13px] placeholder:opacity-60 focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm ${
                   lightMode
-                    ? 'border-black/10 text-gray-950 focus:border-yellow-500'
-                    : 'border-white/10 text-white focus:border-yellow-400'
+                    ? 'border-black/20 text-[#171513] placeholder:text-[#514a41] focus:border-yellow-600'
+                    : 'border-white/10 text-white placeholder:text-gray-500 focus:border-yellow-400'
                 }`}
               />
             </div>
 
-            {/* =================================
-                ACTION
-            ================================== */}
-            <div className="flex flex-col gap-5 pt-2 sm:flex-row sm:items-center sm:justify-between">
+            {/* Availability + Submit */}
+            <div className="flex flex-col items-center gap-6 pt-1 sm:flex-row sm:items-center sm:justify-between">
               {/* Availability */}
               <div
-                className={`flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] transition-colors duration-500 ${
+                className={`flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.16em] ${
                   lightMode
-                    ? 'text-gray-400'
+                    ? 'text-[#514a41]'
                     : 'text-gray-500'
                 }`}
               >
                 <span className="relative flex h-2 w-2">
-                  <span className="absolute inset-0 animate-ping rounded-full bg-green-400 opacity-50" />
+                  <span className="availability-blink absolute inline-flex h-full w-full rounded-full bg-green-500" />
 
-                  <span className="relative h-2 w-2 rounded-full bg-green-400" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
                 </span>
 
                 Available for selected projects
@@ -447,44 +574,66 @@ const ContactForm: React.FC = () => {
                 disabled={isSubmitting}
                 whileHover={
                   !isSubmitting
-                    ? { y: -2 }
-                    : {}
+                    ? {
+                        y: -2,
+                      }
+                    : undefined
                 }
                 whileTap={
                   !isSubmitting
-                    ? { scale: 0.98 }
-                    : {}
+                    ? {
+                        scale: 0.98,
+                      }
+                    : undefined
                 }
-                className="group inline-flex w-fit items-center gap-3 rounded-full bg-yellow-400 px-6 py-3 text-sm font-semibold text-gray-950 transition-colors hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                transition={{
+                  duration: 0.2,
+                }}
+                className={`group inline-flex w-full items-center justify-center gap-3 rounded-full px-7 py-3.5 text-sm font-semibold transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto ${
+                  lightMode
+                    ? 'bg-[#171513] text-white hover:bg-[#29251f]'
+                    : 'bg-yellow-400 text-gray-950 hover:bg-yellow-300'
+                }`}
               >
                 {isSubmitting
                   ? 'Sending...'
                   : 'Send message'}
 
                 {!isSubmitting && (
-                  <FiArrowUpRight
-                    className="transition-transform duration-200 group-hover:translate-x-1 group-hover:-translate-y-1"
-                  />
+                  <FiArrowUpRight className="text-base transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                 )}
               </motion.button>
             </div>
           </form>
         </motion.div>
 
-        {/* =================================
-            MINIMAL FOOTER
-        ================================== */}
-        <div
-          className={`mt-28 flex items-center justify-between border-t pt-5 transition-colors duration-500 ${
+        {/* Footer signal */}
+        <motion.div
+          initial={{
+            opacity: 0,
+          }}
+          whileInView={{
+            opacity: 1,
+          }}
+          viewport={{
+            once: true,
+            margin: '-40px',
+          }}
+          transition={{
+            duration: 0.5,
+            delay: 0.15,
+            ease,
+          }}
+          className={`mt-16 flex flex-col items-center gap-2 border-t pt-5 text-center sm:mt-20 sm:flex-row sm:items-center sm:justify-between sm:text-left ${
             lightMode
-              ? 'border-black/10'
+              ? 'border-black/15'
               : 'border-white/[0.07]'
           }`}
         >
           <span
-            className={`text-[10px] uppercase tracking-[0.18em] transition-colors duration-500 ${
+            className={`font-mono text-[8px] uppercase tracking-[0.16em] ${
               lightMode
-                ? 'text-gray-400'
+                ? 'text-[#71685d]'
                 : 'text-gray-600'
             }`}
           >
@@ -492,15 +641,15 @@ const ContactForm: React.FC = () => {
           </span>
 
           <span
-            className={`text-[10px] transition-colors duration-500 ${
+            className={`font-mono text-[8px] uppercase tracking-[0.16em] ${
               lightMode
-                ? 'text-gray-400'
+                ? 'text-[#71685d]'
                 : 'text-gray-600'
             }`}
           >
             Lagos · Nigeria
           </span>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

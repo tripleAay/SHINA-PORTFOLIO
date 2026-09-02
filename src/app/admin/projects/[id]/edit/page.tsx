@@ -1,8 +1,8 @@
+
 'use client';
 
 import {
   useEffect,
-  useMemo,
   useState,
   ChangeEvent,
   FormEvent,
@@ -42,18 +42,6 @@ type NewImage = {
 };
 
 export default function EditProjectPage() {
-  /*
-   * IMPORTANT:
-   * Create the browser Supabase client inside the component.
-   *
-   * Do NOT use:
-   * import { supabase } from '@/app/lib/supabase';
-   *
-   * This prevents the module-level Supabase client from being
-   * evaluated during the Next.js/Vercel build.
-   */
-  const supabase = useMemo(() => createClient(), []);
-
   const { lightMode } = useTheme();
   const router = useRouter();
   const params = useParams();
@@ -106,6 +94,15 @@ export default function EditProjectPage() {
     setError('');
 
     try {
+      /*
+       * IMPORTANT:
+       * Create the Supabase client only when this function runs.
+       *
+       * This prevents createClient() from executing during
+       * Next.js/Vercel build-time prerendering.
+       */
+      const supabase = createClient();
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -310,6 +307,8 @@ export default function EditProjectPage() {
   async function uploadImages(
     files: NewImage[]
   ) {
+    const supabase = createClient();
+
     const uploadedUrls: string[] = [];
     const uploadedPaths: string[] = [];
 
@@ -382,6 +381,8 @@ export default function EditProjectPage() {
   async function deleteStorageImages(
     urls: string[]
   ) {
+    const supabase = createClient();
+
     const paths = urls
       .map(getStoragePathFromUrl)
       .filter(
@@ -439,6 +440,11 @@ export default function EditProjectPage() {
     let databaseUpdated = false;
 
     try {
+      /*
+       * Create Supabase client here instead of at component render.
+       */
+      const supabase = createClient();
+
       /* ---------------------------------------------------------------------- */
       /* Verify authentication                                                  */
       /* ---------------------------------------------------------------------- */
@@ -636,11 +642,17 @@ export default function EditProjectPage() {
         !databaseUpdated &&
         uploadedImagePaths.length > 0
       ) {
-        await supabase.storage
-          .from('portfolio-images')
-          .remove(
-            uploadedImagePaths
-          );
+        try {
+          const supabase = createClient();
+
+          await supabase.storage
+            .from('portfolio-images')
+            .remove(
+              uploadedImagePaths
+            );
+        } catch {
+          // Ignore cleanup failure.
+        }
       }
 
       setError(
@@ -1281,3 +1293,4 @@ export default function EditProjectPage() {
     </main>
   );
 }
+

@@ -1,10 +1,10 @@
+
 'use client';
 
 import {
   ChangeEvent,
   FormEvent,
   useEffect,
-  useMemo,
   useState,
 } from 'react';
 import Link from 'next/link';
@@ -45,18 +45,20 @@ export default function NewProjectPage() {
 
   /*
    * IMPORTANT:
-   * Do NOT import a module-level Supabase instance.
    *
-   * The old code used:
+   * DO NOT create the Supabase client during component render.
    *
-   * import { supabase } from '@/app/lib/supabase';
+   * Do NOT do this:
    *
-   * That caused Vercel to evaluate createClient()
-   * during the build and fail.
+   * const supabase = useMemo(() => createClient(), []);
    *
-   * We create the browser client here instead.
+   * Even though this is a Client Component, Next.js can
+   * prerender it during the production build. That causes
+   * createClient() to execute on Vercel during build time.
+   *
+   * Instead, create the browser client inside the functions
+   * that actually need it.
    */
-  const supabase = useMemo(() => createClient(), []);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -85,6 +87,12 @@ export default function NewProjectPage() {
 
     async function checkAuth() {
       try {
+        /*
+         * Create the Supabase client only when the effect
+         * actually runs in the browser.
+         */
+        const supabase = createClient();
+
         const {
           data: { user },
           error: authError,
@@ -101,6 +109,7 @@ export default function NewProjectPage() {
           setError(
             'Unable to verify your session. Please log in again.'
           );
+
           setCheckingAuth(false);
           return;
         }
@@ -122,6 +131,7 @@ export default function NewProjectPage() {
         setError(
           'Unable to verify your session. Please log in again.'
         );
+
         setCheckingAuth(false);
       }
     }
@@ -131,7 +141,7 @@ export default function NewProjectPage() {
     return () => {
       cancelled = true;
     };
-  }, [router, supabase]);
+  }, [router]);
 
   /* ------------------------------------------------------------------------ */
   /* Cleanup previews when page unmounts                                      */
@@ -143,6 +153,7 @@ export default function NewProjectPage() {
         URL.revokeObjectURL(image.preview);
       });
     };
+
     // We intentionally only want cleanup when this page unmounts.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -192,6 +203,7 @@ export default function NewProjectPage() {
         setError(
           `"${file.name}" is not a supported image file.`
         );
+
         continue;
       }
 
@@ -199,6 +211,7 @@ export default function NewProjectPage() {
         setError(
           `"${file.name}" is larger than 5MB.`
         );
+
         continue;
       }
 
@@ -244,6 +257,12 @@ export default function NewProjectPage() {
   async function uploadImages(
     selectedImages: SelectedImage[]
   ) {
+    /*
+     * Create the Supabase client inside the operation,
+     * never during component render.
+     */
+    const supabase = createClient();
+
     const imageUrls: string[] = [];
     const uploadedFilePaths: string[] = [];
 
@@ -334,6 +353,7 @@ export default function NewProjectPage() {
       setError(
         'Please enter a project title.'
       );
+
       return;
     }
 
@@ -341,6 +361,7 @@ export default function NewProjectPage() {
       setError(
         'Please enter a project description.'
       );
+
       return;
     }
 
@@ -348,6 +369,7 @@ export default function NewProjectPage() {
       setError(
         `A project can have a maximum of ${MAX_IMAGES} images.`
       );
+
       return;
     }
 
@@ -356,6 +378,12 @@ export default function NewProjectPage() {
     let uploadedFilePaths: string[] = [];
 
     try {
+      /*
+       * Create the Supabase client only when
+       * the form is actually submitted.
+       */
+      const supabase = createClient();
+
       /* -------------------------------------------------------------------- */
       /* Verify authentication                                                */
       /* -------------------------------------------------------------------- */
@@ -409,7 +437,9 @@ export default function NewProjectPage() {
           .from('portfolio')
           .insert({
             title: title.trim(),
-            description: description.trim(),
+
+            description:
+              description.trim(),
 
             /*
              * Backward-compatible primary image.
@@ -508,11 +538,20 @@ export default function NewProjectPage() {
        * uploading images, remove those images.
        */
       if (uploadedFilePaths.length > 0) {
-        await supabase.storage
-          .from('portfolio-images')
-          .remove(
-            uploadedFilePaths
+        try {
+          const supabase = createClient();
+
+          await supabase.storage
+            .from('portfolio-images')
+            .remove(
+              uploadedFilePaths
+            );
+        } catch (cleanupError) {
+          console.error(
+            'Image cleanup failed:',
+            cleanupError
           );
+        }
       }
 
       setError(
@@ -1081,3 +1120,4 @@ function inputClasses(
       : 'border-white/[0.08] placeholder:text-zinc-600 focus:border-yellow-400/60 focus:ring-2 focus:ring-yellow-400/10'
   }`;
 }
+

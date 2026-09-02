@@ -1,243 +1,195 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
-import Link from 'next/link';
+import { FormEvent, useContext, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  FiArrowLeft,
-  FiEye,
-  FiEyeOff,
-  FiLoader,
-} from 'react-icons/fi';
+import { ThemeContext } from '@/app/contexts/ThemeContext';
 import { createClient } from '@/app/lib/client';
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const { lightMode } = useContext(ThemeContext);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  async function handleLogin(
-    event: FormEvent<HTMLFormElement>
-  ) {
-    event.preventDefault();
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
     setError('');
     setLoading(true);
 
     try {
-      /*
-       * IMPORTANT:
-       *
-       * Create the Supabase browser client only when the
-       * user actually submits the login form.
-       *
-       * Do NOT create it at component render time.
-       */
+      // IMPORTANT:
+      // Create the Supabase client only when the user submits the form.
+      // Do NOT create it at component render time.
       const supabase = createClient();
 
       const { error: loginError } =
         await supabase.auth.signInWithPassword({
-          email,
+          email: email.trim(),
           password,
         });
 
       if (loginError) {
-        setError('Invalid email or password.');
-        setLoading(false);
+        setError(loginError.message);
         return;
       }
 
-      router.push('/admin/dashboard');
+      router.push('/admin');
       router.refresh();
     } catch (err) {
-      console.error('Login error:', err);
+      console.error('Admin login error:', err);
 
       setError(
         err instanceof Error
           ? err.message
-          : 'Unable to sign in. Please try again.'
+          : 'Something went wrong. Please try again.'
       );
-
+    } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
-    <main className="min-h-screen bg-[#09090B] text-white">
-      <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-12">
-
-        {/* Background grid */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.035]"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
-          }}
-        />
-
-        {/* Subtle glow */}
-        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-yellow-400/[0.035] blur-[120px]" />
-
-        <div className="relative z-10 w-full max-w-[400px]">
-
-          {/* Logo */}
-          <div className="mb-10 text-center">
-            <div className="mx-auto mb-7 flex h-12 w-12 items-center justify-center rounded-full bg-yellow-400 text-sm font-bold text-black">
-              AA
-            </div>
-
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Welcome back
-            </h1>
-
-            <p className="mt-2 text-sm text-zinc-500">
-              Sign in to your dashboard
-            </p>
+    <main
+      className={`min-h-screen flex items-center justify-center px-6 transition-colors duration-500 ${
+        lightMode
+          ? 'bg-[#f7f3ec] text-zinc-900'
+          : 'bg-zinc-950 text-zinc-100'
+      }`}
+    >
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <div
+            className={`mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border text-sm font-semibold tracking-tight transition-colors ${
+              lightMode
+                ? 'border-zinc-300 bg-white text-zinc-900'
+                : 'border-zinc-800 bg-zinc-900 text-white'
+            }`}
+          >
+            AA
           </div>
 
-          {/* Login card */}
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-7">
-            <form
-              onSubmit={handleLogin}
-              className="space-y-5"
-            >
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Admin Login
+          </h1>
 
-              {/* Email */}
-              <div>
-                <label
-                  htmlFor="email"
-                  className="mb-2 block text-sm font-medium text-zinc-300"
-                >
-                  Email
-                </label>
-
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(event) =>
-                    setEmail(event.target.value)
-                  }
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  required
-                  disabled={loading}
-                  className="h-12 w-full rounded-xl border border-white/[0.09] bg-black/20 px-4 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-yellow-400/60 focus:ring-2 focus:ring-yellow-400/10 disabled:cursor-not-allowed disabled:opacity-60"
-                />
-              </div>
-
-              {/* Password */}
-              <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <label
-                    htmlFor="password"
-                    className="block text-sm font-medium text-zinc-300"
-                  >
-                    Password
-                  </label>
-
-                  <button
-                    type="button"
-                    className="text-xs text-zinc-500 transition hover:text-yellow-400"
-                    onClick={() => {
-                      // Password reset will be implemented later.
-                    }}
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-
-                <div className="relative">
-                  <input
-                    id="password"
-                    type={
-                      showPassword
-                        ? 'text'
-                        : 'password'
-                    }
-                    value={password}
-                    onChange={(event) =>
-                      setPassword(event.target.value)
-                    }
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                    required
-                    disabled={loading}
-                    className="h-12 w-full rounded-xl border border-white/[0.09] bg-black/20 px-4 pr-12 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-yellow-400/60 focus:ring-2 focus:ring-yellow-400/10 disabled:cursor-not-allowed disabled:opacity-60"
-                  />
-
-                  <button
-                    type="button"
-                    aria-label={
-                      showPassword
-                        ? 'Hide password'
-                        : 'Show password'
-                    }
-                    onClick={() =>
-                      setShowPassword(
-                        (value) => !value
-                      )
-                    }
-                    className="absolute right-0 top-0 flex h-12 w-12 items-center justify-center text-zinc-500 transition hover:text-zinc-200"
-                  >
-                    {showPassword ? (
-                      <FiEyeOff size={17} />
-                    ) : (
-                      <FiEye size={17} />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Error */}
-              {error && (
-                <div className="rounded-xl border border-red-400/15 bg-red-400/[0.06] px-4 py-3 text-sm text-red-300">
-                  {error}
-                </div>
-              )}
-
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 px-4 text-sm font-semibold text-black transition hover:bg-yellow-300 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loading ? (
-                  <>
-                    <FiLoader
-                      className="animate-spin"
-                      size={17}
-                    />
-                    Signing in...
-                  </>
-                ) : (
-                  'Sign in'
-                )}
-              </button>
-            </form>
-          </div>
-
-          {/* Back to portfolio */}
-          <div className="mt-7 text-center">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 text-sm text-zinc-500 transition hover:text-yellow-400"
-            >
-              <FiArrowLeft size={15} />
-              Back to portfolio
-            </Link>
-          </div>
-
-          {/* Footer */}
-          <p className="mt-10 text-center text-[11px] tracking-wide text-zinc-700">
-            SHINA ADEKOKUN · ADMIN
+          <p
+            className={`mt-2 text-sm ${
+              lightMode ? 'text-zinc-500' : 'text-zinc-400'
+            }`}
+          >
+            Sign in to manage your portfolio.
           </p>
         </div>
+
+        {/* Login Card */}
+        <div
+          className={`rounded-2xl border p-6 shadow-xl transition-colors duration-500 ${
+            lightMode
+              ? 'border-zinc-200 bg-white'
+              : 'border-zinc-800 bg-zinc-900/80'
+          }`}
+        >
+          <form onSubmit={handleLogin} className="space-y-5">
+            {/* Email */}
+            <div>
+              <label
+                htmlFor="email"
+                className={`mb-2 block text-sm font-medium ${
+                  lightMode ? 'text-zinc-700' : 'text-zinc-300'
+                }`}
+              >
+                Email
+              </label>
+
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                disabled={loading}
+                className={`w-full rounded-xl border px-4 py-3 text-sm outline-none transition-all duration-200 ${
+                  lightMode
+                    ? 'border-zinc-300 bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20'
+                    : 'border-zinc-700 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20'
+                } ${loading ? 'cursor-not-allowed opacity-60' : ''}`}
+              />
+            </div>
+
+            {/* Password */}
+            <div>
+              <label
+                htmlFor="password"
+                className={`mb-2 block text-sm font-medium ${
+                  lightMode ? 'text-zinc-700' : 'text-zinc-300'
+                }`}
+              >
+                Password
+              </label>
+
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                disabled={loading}
+                className={`w-full rounded-xl border px-4 py-3 text-sm outline-none transition-all duration-200 ${
+                  lightMode
+                    ? 'border-zinc-300 bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20'
+                    : 'border-zinc-700 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20'
+                } ${loading ? 'cursor-not-allowed opacity-60' : ''}`}
+              />
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div
+                role="alert"
+                className={`rounded-xl border px-4 py-3 text-sm ${
+                  lightMode
+                    ? 'border-red-200 bg-red-50 text-red-600'
+                    : 'border-red-900/50 bg-red-950/30 text-red-400'
+                }`}
+              >
+                {error}
+              </div>
+            )}
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${
+                loading
+                  ? 'cursor-not-allowed opacity-60'
+                  : 'hover:-translate-y-0.5 hover:shadow-lg'
+              } bg-yellow-400 text-zinc-950 hover:bg-yellow-300`}
+            >
+              {loading ? 'Signing in...' : 'Sign in'}
+            </button>
+          </form>
+        </div>
+
+        {/* Footer */}
+        <p
+          className={`mt-6 text-center text-xs ${
+            lightMode ? 'text-zinc-400' : 'text-zinc-600'
+          }`}
+        >
+          Shina Adedokun · Portfolio Administration
+        </p>
       </div>
     </main>
   );

@@ -13,7 +13,6 @@ import { createClient } from '@/app/lib/client';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const supabase = createClient();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,20 +28,42 @@ export default function AdminLoginPage() {
     setError('');
     setLoading(true);
 
-    const { error: loginError } =
-      await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    try {
+      /*
+       * IMPORTANT:
+       *
+       * Create the Supabase browser client only when the
+       * user actually submits the login form.
+       *
+       * Do NOT create it at component render time.
+       */
+      const supabase = createClient();
 
-    if (loginError) {
-      setError('Invalid email or password.');
+      const { error: loginError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+      if (loginError) {
+        setError('Invalid email or password.');
+        setLoading(false);
+        return;
+      }
+
+      router.push('/admin/dashboard');
+      router.refresh();
+    } catch (err) {
+      console.error('Login error:', err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to sign in. Please try again.'
+      );
+
       setLoading(false);
-      return;
     }
-
-    router.push('/admin/dashboard');
-    router.refresh();
   }
 
   return (

@@ -2,7 +2,6 @@
 
 import React, {
   useContext,
-  useMemo,
   useState,
 } from 'react';
 import { ThemeContext } from '../contexts/ThemeContext';
@@ -22,16 +21,6 @@ interface FormData {
 
 const ContactForm: React.FC = () => {
   const { lightMode } = useContext(ThemeContext);
-
-  /*
-   * Create the Supabase browser client inside
-   * the client component instead of importing a
-   * module-level Supabase instance.
-   *
-   * useMemo keeps the same client instance during
-   * the component's lifetime.
-   */
-  const supabase = useMemo(() => createClient(), []);
 
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -63,17 +52,49 @@ const ContactForm: React.FC = () => {
     // Prevent accidental double submission
     if (isSubmitting) return;
 
+    // Basic validation
+    const name = formData.name.trim();
+    const email = formData.email.trim();
+    const message = formData.message.trim();
+
+    if (!name || !email || !message) {
+      toast.error(
+        'Please complete all fields before sending.',
+        {
+          position: 'top-right',
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          theme: lightMode ? 'light' : 'dark',
+        }
+      );
+
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
+      /*
+       * IMPORTANT:
+       * Create the Supabase browser client only when
+       * the user submits the form.
+       *
+       * This prevents Supabase from being initialized
+       * during Next.js/Vercel static prerendering.
+       */
+      const supabase = createClient();
+
       const { error: supabaseError } =
         await supabase
           .from('messages')
           .insert([
             {
-              name: formData.name.trim(),
-              email: formData.email.trim(),
-              message: formData.message.trim(),
+              name,
+              email,
+              message,
             },
           ]);
 
@@ -92,16 +113,13 @@ const ContactForm: React.FC = () => {
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
-            theme: lightMode
-              ? 'light'
-              : 'dark',
+            theme: lightMode ? 'light' : 'dark',
           }
         );
 
         return;
       }
 
-      // Success
       toast.success(
         "Message received. I'll be in touch.",
         {
@@ -111,13 +129,11 @@ const ContactForm: React.FC = () => {
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
-          theme: lightMode
-            ? 'light'
-            : 'dark',
+          theme: lightMode ? 'light' : 'dark',
         }
       );
 
-      // Clear form
+      // Clear form after successful submission
       setFormData({
         name: '',
         email: '',
@@ -138,9 +154,7 @@ const ContactForm: React.FC = () => {
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
-          theme: lightMode
-            ? 'light'
-            : 'dark',
+          theme: lightMode ? 'light' : 'dark',
         }
       );
     } finally {

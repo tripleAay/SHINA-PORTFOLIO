@@ -3,11 +3,17 @@
 import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FiArrowLeft, FiEye, FiEyeOff, FiLoader } from 'react-icons/fi';
-import { supabase } from '@/app/lib/supabase';
+import {
+  FiArrowLeft,
+  FiEye,
+  FiEyeOff,
+  FiLoader,
+} from 'react-icons/fi';
+import { createClient } from '@/app/lib/client';
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const supabase = createClient();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,16 +21,19 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  async function handleLogin(event: FormEvent<HTMLFormElement>) {
+  async function handleLogin(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
     setError('');
     setLoading(true);
 
-    const { error: loginError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error: loginError } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
     if (loginError) {
       setError('Invalid email or password.');
@@ -32,14 +41,15 @@ export default function AdminLoginPage() {
       return;
     }
 
-    router.push('/admin');
+    router.push('/admin/dashboard');
     router.refresh();
   }
 
   return (
     <main className="min-h-screen bg-[#09090B] text-white">
       <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-12">
-        {/* Subtle background grid */}
+
+        {/* Background grid */}
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.035]"
           style={{
@@ -53,6 +63,7 @@ export default function AdminLoginPage() {
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-yellow-400/[0.035] blur-[120px]" />
 
         <div className="relative z-10 w-full max-w-[400px]">
+
           {/* Logo */}
           <div className="mb-10 text-center">
             <div className="mx-auto mb-7 flex h-12 w-12 items-center justify-center rounded-full bg-yellow-400 text-sm font-bold text-black">
@@ -70,7 +81,11 @@ export default function AdminLoginPage() {
 
           {/* Login card */}
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-7">
-            <form onSubmit={handleLogin} className="space-y-5">
+            <form
+              onSubmit={handleLogin}
+              className="space-y-5"
+            >
+
               {/* Email */}
               <div>
                 <label
@@ -84,7 +99,9 @@ export default function AdminLoginPage() {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(event) => setEmail(event.target.value)}
+                  onChange={(event) =>
+                    setEmail(event.target.value)
+                  }
                   placeholder="you@example.com"
                   autoComplete="email"
                   required
@@ -107,7 +124,7 @@ export default function AdminLoginPage() {
                     type="button"
                     className="text-xs text-zinc-500 transition hover:text-yellow-400"
                     onClick={() => {
-                      // Add password reset flow here later.
+                      // Password reset will be implemented later.
                     }}
                   >
                     Forgot password?
@@ -117,9 +134,15 @@ export default function AdminLoginPage() {
                 <div className="relative">
                   <input
                     id="password"
-                    type={showPassword ? 'text' : 'password'}
+                    type={
+                      showPassword
+                        ? 'text'
+                        : 'password'
+                    }
                     value={password}
-                    onChange={(event) => setPassword(event.target.value)}
+                    onChange={(event) =>
+                      setPassword(event.target.value)
+                    }
                     placeholder="••••••••"
                     autoComplete="current-password"
                     required
@@ -130,9 +153,15 @@ export default function AdminLoginPage() {
                   <button
                     type="button"
                     aria-label={
-                      showPassword ? 'Hide password' : 'Show password'
+                      showPassword
+                        ? 'Hide password'
+                        : 'Show password'
                     }
-                    onClick={() => setShowPassword((value) => !value)}
+                    onClick={() =>
+                      setShowPassword(
+                        (value) => !value
+                      )
+                    }
                     className="absolute right-0 top-0 flex h-12 w-12 items-center justify-center text-zinc-500 transition hover:text-zinc-200"
                   >
                     {showPassword ? (
@@ -159,7 +188,10 @@ export default function AdminLoginPage() {
               >
                 {loading ? (
                   <>
-                    <FiLoader className="animate-spin" size={17} />
+                    <FiLoader
+                      className="animate-spin"
+                      size={17}
+                    />
                     Signing in...
                   </>
                 ) : (
@@ -180,7 +212,7 @@ export default function AdminLoginPage() {
             </Link>
           </div>
 
-          {/* Small footer */}
+          {/* Footer */}
           <p className="mt-10 text-center text-[11px] tracking-wide text-zinc-700">
             SHINA ADEKOKUN · ADMIN
           </p>

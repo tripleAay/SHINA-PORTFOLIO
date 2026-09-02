@@ -1,6 +1,11 @@
 'use client';
 
-import { useEffect, useState, ChangeEvent, FormEvent } from 'react';
+import {
+  useEffect,
+  useState,
+  ChangeEvent,
+  FormEvent,
+} from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -16,15 +21,24 @@ import {
 import { useTheme } from '@/app/contexts/ThemeContext';
 import { supabase } from '@/app/lib/supabase';
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_IMAGES = 5;
+
 type PortfolioProject = {
   id: string;
   title: string;
   description: string;
   image: string | null;
+  images: string[] | null;
   link: string | null;
   category: string | null;
   technologies: string | null;
   featured: boolean;
+};
+
+type NewImage = {
+  file: File;
+  preview: string;
 };
 
 export default function EditProjectPage() {
@@ -34,18 +48,28 @@ export default function EditProjectPage() {
 
   const projectId = params.id as string;
 
-  const [project, setProject] = useState<PortfolioProject | null>(null);
+  const [project, setProject] =
+    useState<PortfolioProject | null>(null);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
-  const [technologies, setTechnologies] = useState('');
+  const [technologies, setTechnologies] =
+    useState('');
   const [link, setLink] = useState('');
   const [featured, setFeatured] = useState(false);
 
-  const [currentImage, setCurrentImage] = useState<string | null>(null);
-  const [newImage, setNewImage] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  /*
+   * Existing images already stored in Supabase.
+   */
+  const [existingImages, setExistingImages] =
+    useState<string[]>([]);
+
+  /*
+   * New images selected but not uploaded yet.
+   */
+  const [newImages, setNewImages] =
+    useState<NewImage[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -54,8 +78,19 @@ export default function EditProjectPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  /* -------------------------------------------------------------------------- */
+  /* Load project                                                               */
+  /* -------------------------------------------------------------------------- */
+
   useEffect(() => {
     loadProject();
+
+    return () => {
+      newImages.forEach((image) => {
+        URL.revokeObjectURL(image.preview);
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   async function loadProject() {
@@ -71,68 +106,171 @@ export default function EditProjectPage() {
       return;
     }
 
-    const { data, error: fetchError } = await supabase
-      .from('portfolio')
-      .select(
-        'id, title, description, image, link, category, technologies, featured'
-      )
-      .eq('id', projectId)
-      .single();
+    const { data, error: fetchError } =
+      await supabase
+        .from('portfolio')
+        .select(
+          'id, title, description, image, images, link, category, technologies, featured'
+        )
+        .eq('id', projectId)
+        .single();
 
     if (fetchError || !data) {
-      setError(fetchError?.message || 'Project could not be found.');
+      setError(
+        fetchError?.message ||
+          'Project could not be found.'
+      );
       setLoading(false);
       return;
     }
 
-    const loadedProject = data as PortfolioProject;
+    const loadedProject =
+      data as PortfolioProject;
 
     setProject(loadedProject);
 
     setTitle(loadedProject.title);
     setDescription(loadedProject.description);
-    setCategory(loadedProject.category || '');
-    setTechnologies(loadedProject.technologies || '');
+    setCategory(
+      loadedProject.category || ''
+    );
+    setTechnologies(
+      loadedProject.technologies || ''
+    );
     setLink(loadedProject.link || '');
     setFeatured(loadedProject.featured);
-    setCurrentImage(loadedProject.image);
+
+    /*
+     * New projects use `images`.
+     *
+     * Older projects may only have `image`,
+     * so we fall back to that.
+     */
+    const loadedImages =
+      Array.isArray(loadedProject.images) &&
+      loadedProject.images.length > 0
+        ? loadedProject.images
+        : loadedProject.image
+          ? [loadedProject.image]
+          : [];
+
+    setExistingImages(loadedImages);
 
     setLoading(false);
   }
 
-  function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+  /* -------------------------------------------------------------------------- */
+  /* Image selection                                                            */
+  /* -------------------------------------------------------------------------- */
 
-    if (!file) return;
+  function handleImageChange(
+    event: ChangeEvent<HTMLInputElement>
+  ) {
+    const files = Array.from(
+      event.target.files || []
+    );
 
-    if (!file.type.startsWith('image/')) {
-      setError('Please select a valid image file.');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Image must be smaller than 5MB.');
-      return;
-    }
+    if (!files.length) return;
 
     setError('');
-    setNewImage(file);
 
-    const objectUrl = URL.createObjectURL(file);
-    setPreview(objectUrl);
-  }
+    const totalImages =
+      existingImages.length +
+      newImages.length;
 
-  function removeNewImage() {
-    if (preview) {
-      URL.revokeObjectURL(preview);
+    const remainingSlots =
+      MAX_IMAGES - totalImages;
+
+    if (remainingSlots <= 0) {
+      setError(
+        `A project can have a maximum of ${MAX_IMAGES} images.`
+      );
+      event.target.value = '';
+      return;
     }
 
-    setNewImage(null);
-    setPreview(null);
+    if (files.length > remainingSlots) {
+      setError(
+        `You can only add ${remainingSlots} more image${
+          remainingSlots === 1 ? '' : 's'
+        }.`
+      );
+      event.target.value = '';
+      return;
+    }
+
+    const validImages: NewImage[] = [];
+
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) {
+        setError(
+          `"${file.name}" is not a valid image file.`
+        );
+        continue;
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        setError(
+          `"${file.name}" is larger than 5MB.`
+        );
+        continue;
+      }
+
+      validImages.push({
+        file,
+        preview: URL.createObjectURL(file),
+      });
+    }
+
+    setNewImages((current) => [
+      ...current,
+      ...validImages,
+    ]);
+
+    event.target.value = '';
   }
 
-  function getStoragePathFromUrl(url: string) {
-    const marker = '/storage/v1/object/public/portfolio-images/';
+  /* -------------------------------------------------------------------------- */
+  /* Remove existing image                                                      */
+  /* -------------------------------------------------------------------------- */
+
+  function removeExistingImage(index: number) {
+    setExistingImages((current) =>
+      current.filter(
+        (_, imageIndex) =>
+          imageIndex !== index
+      )
+    );
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /* Remove new image                                                           */
+  /* -------------------------------------------------------------------------- */
+
+  function removeNewImage(index: number) {
+    setNewImages((current) => {
+      const image = current[index];
+
+      if (image) {
+        URL.revokeObjectURL(image.preview);
+      }
+
+      return current.filter(
+        (_, imageIndex) =>
+          imageIndex !== index
+      );
+    });
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /* Storage helpers                                                            */
+  /* -------------------------------------------------------------------------- */
+
+  function getStoragePathFromUrl(
+    url: string
+  ) {
+    const marker =
+      '/storage/v1/object/public/portfolio-images/';
 
     const index = url.indexOf(marker);
 
@@ -140,70 +278,142 @@ export default function EditProjectPage() {
       return null;
     }
 
-    return decodeURIComponent(url.substring(index + marker.length));
+    return decodeURIComponent(
+      url.substring(
+        index + marker.length
+      )
+    );
   }
 
-  async function uploadNewImage(file: File) {
+  async function uploadImages(
+    files: NewImage[]
+  ) {
+    const uploadedUrls: string[] = [];
+    const uploadedPaths: string[] = [];
+
     setUploading(true);
 
-    const extension =
-      file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    try {
+      for (const image of files) {
+        const extension =
+          image.file.name
+            .split('.')
+            .pop()
+            ?.toLowerCase() || 'jpg';
 
-    const filePath = `projects/${crypto.randomUUID()}.${extension}`;
+        const filePath =
+          `projects/${crypto.randomUUID()}.${extension}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from('portfolio-images')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false,
-      });
+        const { error: uploadError } =
+          await supabase.storage
+            .from('portfolio-images')
+            .upload(
+              filePath,
+              image.file,
+              {
+                cacheControl: '3600',
+                upsert: false,
+                contentType:
+                  image.file.type,
+              }
+            );
 
-    if (uploadError) {
+        if (uploadError) {
+          throw new Error(
+            uploadError.message
+          );
+        }
+
+        uploadedPaths.push(filePath);
+
+        const { data } =
+          supabase.storage
+            .from('portfolio-images')
+            .getPublicUrl(filePath);
+
+        uploadedUrls.push(
+          data.publicUrl
+        );
+      }
+
+      return {
+        urls: uploadedUrls,
+        paths: uploadedPaths,
+      };
+    } catch (uploadError) {
+      /*
+       * If one of several uploads fails,
+       * remove anything that was already uploaded.
+       */
+      if (uploadedPaths.length > 0) {
+        await supabase.storage
+          .from('portfolio-images')
+          .remove(uploadedPaths);
+      }
+
+      throw uploadError;
+    } finally {
       setUploading(false);
-      throw new Error(uploadError.message);
     }
-
-    const { data } = supabase.storage
-      .from('portfolio-images')
-      .getPublicUrl(filePath);
-
-    setUploading(false);
-
-    return {
-      url: data.publicUrl,
-      path: filePath,
-    };
   }
 
-  async function deleteStorageImage(url: string | null) {
-    if (!url) return;
+  async function deleteStorageImages(
+    urls: string[]
+  ) {
+    const paths = urls
+      .map(getStoragePathFromUrl)
+      .filter(
+        (path): path is string =>
+          Boolean(path)
+      );
 
-    const path = getStoragePathFromUrl(url);
-
-    if (!path) return;
+    if (!paths.length) return;
 
     await supabase.storage
       .from('portfolio-images')
-      .remove([path]);
+      .remove(paths);
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  /* -------------------------------------------------------------------------- */
+  /* Submit                                                                     */
+  /* -------------------------------------------------------------------------- */
+
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
     setError('');
     setSuccess('');
 
     if (!title.trim()) {
-      setError('Project title is required.');
+      setError(
+        'Project title is required.'
+      );
       return;
     }
 
     if (!description.trim()) {
-      setError('Project description is required.');
+      setError(
+        'Project description is required.'
+      );
+      return;
+    }
+
+    const totalImages =
+      existingImages.length +
+      newImages.length;
+
+    if (totalImages > MAX_IMAGES) {
+      setError(
+        `A project can have a maximum of ${MAX_IMAGES} images.`
+      );
       return;
     }
 
     setSaving(true);
+
+    let uploadedImagePaths: string[] = [];
 
     try {
       const {
@@ -215,70 +425,174 @@ export default function EditProjectPage() {
         return;
       }
 
-      let imageUrl = currentImage;
-      let uploadedImagePath: string | null = null;
+      /* ---------------------------------------------------------------------- */
+      /* Upload new images                                                      */
+      /* ---------------------------------------------------------------------- */
 
-      /*
-       * Upload the new image first.
-       * We only delete the old image after the database update succeeds.
-       */
-      if (newImage) {
-        const uploaded = await uploadNewImage(newImage);
+      let uploadedUrls: string[] = [];
 
-        imageUrl = uploaded.url;
-        uploadedImagePath = uploaded.path;
+      if (newImages.length > 0) {
+        const uploaded =
+          await uploadImages(newImages);
+
+        uploadedUrls = uploaded.urls;
+        uploadedImagePaths =
+          uploaded.paths;
       }
 
-      const { error: updateError } = await supabase
-        .from('portfolio')
-        .update({
-          title: title.trim(),
-          description: description.trim(),
-          category: category.trim() || null,
-          technologies: technologies.trim() || null,
-          link: link.trim() || null,
-          featured,
-          image: imageUrl,
-        })
-        .eq('id', projectId);
+      /* ---------------------------------------------------------------------- */
+      /* Combine existing + new images                                         */
+      /* ---------------------------------------------------------------------- */
+
+      const finalImages = [
+        ...existingImages,
+        ...uploadedUrls,
+      ];
 
       /*
-       * If the database update fails, remove the newly uploaded image
-       * so we don't leave an orphaned file in Storage.
+       * First image is always the primary image.
+       *
+       * This keeps your existing `image` column
+       * working with your current portfolio component.
        */
+      const primaryImage =
+        finalImages.length > 0
+          ? finalImages[0]
+          : null;
+
+      /* ---------------------------------------------------------------------- */
+      /* Update database                                                        */
+      /* ---------------------------------------------------------------------- */
+
+      const { error: updateError } =
+        await supabase
+          .from('portfolio')
+          .update({
+            title: title.trim(),
+            description: description.trim(),
+            category:
+              category.trim() || null,
+            technologies:
+              technologies.trim() || null,
+            link: link.trim() || null,
+            featured,
+
+            /*
+             * Backward-compatible primary image.
+             */
+            image: primaryImage,
+
+            /*
+             * Complete project gallery.
+             */
+            images: finalImages,
+          })
+          .eq('id', projectId);
+
+      /* ---------------------------------------------------------------------- */
+      /* Database failed                                                        */
+      /* ---------------------------------------------------------------------- */
+
       if (updateError) {
-        if (uploadedImagePath) {
+        /*
+         * Remove newly uploaded images.
+         *
+         * Existing images were never touched.
+         */
+        if (uploadedImagePaths.length > 0) {
           await supabase.storage
             .from('portfolio-images')
-            .remove([uploadedImagePath]);
+            .remove(
+              uploadedImagePaths
+            );
         }
 
-        throw new Error(updateError.message);
+        throw new Error(
+          updateError.message
+        );
       }
 
-      /*
-       * Database update succeeded.
-       * Now it is safe to remove the previous image.
-       */
-      if (newImage && currentImage) {
-        await deleteStorageImage(currentImage);
+      /* ---------------------------------------------------------------------- */
+      /* Delete removed old images                                              */
+      /* ---------------------------------------------------------------------- */
+
+      const oldImages =
+        project?.images &&
+        Array.isArray(project.images) &&
+        project.images.length > 0
+          ? project.images
+          : project?.image
+            ? [project.image]
+            : [];
+
+      const removedImages =
+        oldImages.filter(
+          (oldImage) =>
+            !finalImages.includes(oldImage)
+        );
+
+      if (removedImages.length > 0) {
+        await deleteStorageImages(
+          removedImages
+        );
       }
 
-      setCurrentImage(imageUrl);
-      setNewImage(null);
+      /* ---------------------------------------------------------------------- */
+      /* Update local state                                                     */
+      /* ---------------------------------------------------------------------- */
 
-      if (preview) {
-        URL.revokeObjectURL(preview);
-      }
+      setExistingImages(finalImages);
 
-      setPreview(null);
+      newImages.forEach((image) => {
+        URL.revokeObjectURL(
+          image.preview
+        );
+      });
 
-      setSuccess('Project updated successfully.');
+      setNewImages([]);
+
+      setProject((current) =>
+        current
+          ? {
+              ...current,
+              title: title.trim(),
+              description:
+                description.trim(),
+              category:
+                category.trim() || null,
+              technologies:
+                technologies.trim() ||
+                null,
+              link:
+                link.trim() || null,
+              featured,
+              image: primaryImage,
+              images: finalImages,
+            }
+          : current
+      );
+
+      setSuccess(
+        'Project updated successfully.'
+      );
 
       setTimeout(() => {
         router.push('/admin/projects');
+        router.refresh();
       }, 900);
     } catch (err) {
+      /*
+       * Safety cleanup in case an unexpected
+       * error happens after uploading.
+       */
+      if (uploadedImagePaths.length > 0) {
+        await supabase.storage
+          .from('portfolio-images')
+          .remove(
+            uploadedImagePaths
+          );
+      }
+
       setError(
         err instanceof Error
           ? err.message
@@ -289,6 +603,10 @@ export default function EditProjectPage() {
       setUploading(false);
     }
   }
+
+  /* -------------------------------------------------------------------------- */
+  /* Loading                                                                    */
+  /* -------------------------------------------------------------------------- */
 
   if (loading) {
     return (
@@ -305,6 +623,10 @@ export default function EditProjectPage() {
       </main>
     );
   }
+
+  /* -------------------------------------------------------------------------- */
+  /* Not found                                                                  */
+  /* -------------------------------------------------------------------------- */
 
   if (!project) {
     return (
@@ -323,10 +645,13 @@ export default function EditProjectPage() {
 
             <p
               className={`mt-3 text-sm ${
-                lightMode ? 'text-zinc-500' : 'text-zinc-400'
+                lightMode
+                  ? 'text-zinc-500'
+                  : 'text-zinc-400'
               }`}
             >
-              {error || 'This project does not exist.'}
+              {error ||
+                'This project does not exist.'}
             </p>
 
             <Link
@@ -342,7 +667,9 @@ export default function EditProjectPage() {
     );
   }
 
-  const displayedImage = preview || currentImage;
+  const totalImages =
+    existingImages.length +
+    newImages.length;
 
   return (
     <main
@@ -352,7 +679,7 @@ export default function EditProjectPage() {
           : 'bg-[#09090B] text-white'
       }`}
     >
-      {/* Subtle background */}
+      {/* Background */}
       <div
         className={`pointer-events-none fixed inset-0 ${
           lightMode
@@ -363,32 +690,32 @@ export default function EditProjectPage() {
 
       <div className="relative mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
         {/* Header */}
-        <header className="mb-8 flex items-center justify-between">
-          <div>
-            <Link
-              href="/admin/projects"
-              className={`mb-3 inline-flex items-center gap-2 text-sm transition ${
-                lightMode
-                  ? 'text-zinc-500 hover:text-zinc-900'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              <FiArrowLeft />
-              Back to projects
-            </Link>
+        <header className="mb-8">
+          <Link
+            href="/admin/projects"
+            className={`mb-3 inline-flex items-center gap-2 text-sm transition ${
+              lightMode
+                ? 'text-zinc-500 hover:text-zinc-900'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <FiArrowLeft />
+            Back to projects
+          </Link>
 
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              Edit project
-            </h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            Edit project
+          </h1>
 
-            <p
-              className={`mt-1 text-sm ${
-                lightMode ? 'text-zinc-500' : 'text-zinc-400'
-              }`}
-            >
-              Update your portfolio project.
-            </p>
-          </div>
+          <p
+            className={`mt-1 text-sm ${
+              lightMode
+                ? 'text-zinc-500'
+                : 'text-zinc-400'
+            }`}
+          >
+            Update your portfolio project.
+          </p>
         </header>
 
         {/* Form */}
@@ -419,7 +746,8 @@ export default function EditProjectPage() {
                     : 'text-zinc-500'
                 }`}
               >
-                Keep your project information clear and concise.
+                Keep your project information
+                clear and concise.
               </p>
             </div>
 
@@ -437,8 +765,11 @@ export default function EditProjectPage() {
                   id="title"
                   type="text"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e) =>
+                    setTitle(e.target.value)
+                  }
                   placeholder="e.g. Fynaro Digital Platform"
+                  disabled={saving}
                   className={`w-full rounded-xl border px-4 py-3 text-sm outline-none transition ${
                     lightMode
                       ? 'border-zinc-200 bg-zinc-50 placeholder:text-zinc-400 focus:border-yellow-400'
@@ -459,9 +790,14 @@ export default function EditProjectPage() {
                 <textarea
                   id="description"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) =>
+                    setDescription(
+                      e.target.value
+                    )
+                  }
                   rows={5}
                   placeholder="Describe what you built and the problem it solves..."
+                  disabled={saving}
                   className={`w-full resize-none rounded-xl border px-4 py-3 text-sm outline-none transition ${
                     lightMode
                       ? 'border-zinc-200 bg-zinc-50 placeholder:text-zinc-400 focus:border-yellow-400'
@@ -483,19 +819,34 @@ export default function EditProjectPage() {
                   <select
                     id="category"
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                    onChange={(e) =>
+                      setCategory(e.target.value)
+                    }
+                    disabled={saving}
                     className={`w-full rounded-xl border px-4 py-3 text-sm outline-none transition ${
                       lightMode
                         ? 'border-zinc-200 bg-zinc-50 focus:border-yellow-400'
                         : 'border-white/10 bg-white/[0.04] focus:border-yellow-400'
                     }`}
                   >
-                    <option value="">Select category</option>
-                    <option value="Web">Web</option>
-                    <option value="Mobile">Mobile</option>
-                    <option value="Design">Design</option>
-                    <option value="API">API</option>
-                    <option value="Other">Other</option>
+                    <option value="">
+                      Select category
+                    </option>
+                    <option value="Web">
+                      Web
+                    </option>
+                    <option value="Mobile">
+                      Mobile
+                    </option>
+                    <option value="Design">
+                      Design
+                    </option>
+                    <option value="API">
+                      API
+                    </option>
+                    <option value="Other">
+                      Other
+                    </option>
                   </select>
                 </div>
 
@@ -512,9 +863,12 @@ export default function EditProjectPage() {
                     type="text"
                     value={technologies}
                     onChange={(e) =>
-                      setTechnologies(e.target.value)
+                      setTechnologies(
+                        e.target.value
+                      )
                     }
                     placeholder="Next.js, React, TypeScript, Supabase"
+                    disabled={saving}
                     className={`w-full rounded-xl border px-4 py-3 text-sm outline-none transition ${
                       lightMode
                         ? 'border-zinc-200 bg-zinc-50 placeholder:text-zinc-400 focus:border-yellow-400'
@@ -529,7 +883,8 @@ export default function EditProjectPage() {
                         : 'text-zinc-500'
                     }`}
                   >
-                    Separate each technology with a comma.
+                    Separate each technology
+                    with a comma.
                   </p>
                 </div>
               </div>
@@ -547,8 +902,11 @@ export default function EditProjectPage() {
                   id="link"
                   type="url"
                   value={link}
-                  onChange={(e) => setLink(e.target.value)}
+                  onChange={(e) =>
+                    setLink(e.target.value)
+                  }
                   placeholder="https://example.com"
+                  disabled={saving}
                   className={`w-full rounded-xl border px-4 py-3 text-sm outline-none transition ${
                     lightMode
                       ? 'border-zinc-200 bg-zinc-50 placeholder:text-zinc-400 focus:border-yellow-400'
@@ -557,99 +915,200 @@ export default function EditProjectPage() {
                 />
               </div>
 
-              {/* Image */}
+              {/* ---------------------------------------------------------------- */}
+              {/* Images                                                           */}
+              {/* ---------------------------------------------------------------- */}
+
               <div>
-                <label className="mb-2 block text-sm font-medium">
-                  Project image
-                </label>
+                <div className="mb-3 flex items-end justify-between gap-4">
+                  <div>
+                    <label className="block text-sm font-medium">
+                      Project images
+                    </label>
 
-                <div className="grid gap-5 md:grid-cols-[220px_1fr]">
-                  {/* Preview */}
-                  <div
-                    className={`relative aspect-[4/3] overflow-hidden rounded-xl border ${
-                      lightMode
-                        ? 'border-zinc-200 bg-zinc-100'
-                        : 'border-white/10 bg-white/[0.03]'
-                    }`}
-                  >
-                    {displayedImage ? (
-                      <>
-                        <img
-                          src={displayedImage}
-                          alt={title || 'Project preview'}
-                          className="h-full w-full object-cover"
-                        />
-
-                        {preview && (
-                          <div className="absolute left-2 top-2 rounded-full bg-yellow-400 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-black">
-                            New image
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="flex h-full flex-col items-center justify-center gap-2 text-zinc-500">
-                        <FiImage className="text-2xl" />
-                        <span className="text-xs">
-                          No image
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Upload controls */}
-                  <div className="flex flex-col justify-center">
-                    <div
-                      className={`rounded-xl border border-dashed p-5 ${
+                    <p
+                      className={`mt-1 text-xs ${
                         lightMode
-                          ? 'border-zinc-300 bg-zinc-50'
-                          : 'border-white/10 bg-white/[0.02]'
+                          ? 'text-zinc-500'
+                          : 'text-zinc-500'
                       }`}
                     >
-                      <FiUpload className="mb-3 text-xl text-yellow-400" />
-
-                      <p className="text-sm font-medium">
-                        Replace project image
-                      </p>
-
-                      <p
-                        className={`mt-1 text-xs ${
-                          lightMode
-                            ? 'text-zinc-500'
-                            : 'text-zinc-500'
-                        }`}
-                      >
-                        JPG, PNG or WebP · Maximum 5MB
-                      </p>
-
-                      <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-yellow-400/30 bg-yellow-400/10 px-4 py-2.5 text-xs font-medium text-yellow-500 transition hover:bg-yellow-400/20">
-                        <FiUpload />
-                        Choose new image
-
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageChange}
-                          className="hidden"
-                        />
-                      </label>
-
-                      {preview && (
-                        <button
-                          type="button"
-                          onClick={removeNewImage}
-                          className={`ml-2 inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-medium transition ${
-                            lightMode
-                              ? 'text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900'
-                              : 'text-zinc-400 hover:bg-white/10 hover:text-white'
-                          }`}
-                        >
-                          <FiX />
-                          Cancel replacement
-                        </button>
-                      )}
-                    </div>
+                      Add up to 5 images. The first
+                      image is the primary image.
+                    </p>
                   </div>
+
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${
+                      totalImages === MAX_IMAGES
+                        ? 'bg-yellow-400/10 text-yellow-500'
+                        : lightMode
+                          ? 'bg-zinc-100 text-zinc-500'
+                          : 'bg-white/[0.05] text-zinc-500'
+                    }`}
+                  >
+                    {totalImages}/{MAX_IMAGES}
+                  </span>
                 </div>
+
+                {/* Image grid */}
+                {totalImages > 0 && (
+                  <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {/* Existing images */}
+                    {existingImages.map(
+                      (image, index) => (
+                        <div
+                          key={image}
+                          className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-white/10"
+                        >
+                          <img
+                            src={image}
+                            alt={`${title} image ${index + 1}`}
+                            className="h-full w-full object-cover"
+                          />
+
+                          {/* Primary label */}
+                          <div className="absolute left-2 top-2 rounded-full bg-black/65 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-md">
+                            {index === 0
+                              ? 'Primary'
+                              : `Image ${index + 1}`}
+                          </div>
+
+                          {/* Remove */}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              removeExistingImage(
+                                index
+                              )
+                            }
+                            disabled={saving}
+                            aria-label={`Remove image ${index + 1}`}
+                            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/65 text-white backdrop-blur-md transition hover:bg-red-500"
+                          >
+                            <FiX size={15} />
+                          </button>
+                        </div>
+                      )
+                    )}
+
+                    {/* New images */}
+                    {newImages.map(
+                      (image, index) => {
+                        const displayIndex =
+                          existingImages.length +
+                          index;
+
+                        return (
+                          <div
+                            key={image.preview}
+                            className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-yellow-400/30"
+                          >
+                            <img
+                              src={image.preview}
+                              alt={`New project image ${
+                                displayIndex + 1
+                              }`}
+                              className="h-full w-full object-cover"
+                            />
+
+                            <div className="absolute left-2 top-2 rounded-full bg-yellow-400 px-2.5 py-1 text-[10px] font-semibold text-black">
+                              {displayIndex === 0
+                                ? 'Primary'
+                                : `Image ${
+                                    displayIndex + 1
+                                  }`}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removeNewImage(
+                                  index
+                                )
+                              }
+                              disabled={saving}
+                              aria-label={`Remove new image ${
+                                displayIndex + 1
+                              }`}
+                              className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/65 text-white backdrop-blur-md transition hover:bg-red-500"
+                            >
+                              <FiX size={15} />
+                            </button>
+
+                            <div className="absolute bottom-0 left-0 right-0 truncate bg-black/65 px-3 py-2 text-[10px] text-white backdrop-blur-md">
+                              {image.file.name}
+                            </div>
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
+                )}
+
+                {/* Add images */}
+                {totalImages < MAX_IMAGES && (
+                  <label
+                    className={`flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed transition ${
+                      lightMode
+                        ? 'border-zinc-300 bg-zinc-50 hover:border-yellow-400/60 hover:bg-yellow-400/[0.025]'
+                        : 'border-white/10 bg-white/[0.02] hover:border-yellow-400/50 hover:bg-yellow-400/[0.025]'
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      multiple
+                      onChange={
+                        handleImageChange
+                      }
+                      disabled={saving}
+                      className="hidden"
+                    />
+
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-yellow-400/10 text-yellow-500">
+                      <FiUpload size={19} />
+                    </div>
+
+                    <p className="mt-3 text-sm font-medium">
+                      {totalImages === 0
+                        ? 'Upload project images'
+                        : 'Add more images'}
+                    </p>
+
+                    <p className="mt-1 text-xs text-zinc-500">
+                      {MAX_IMAGES -
+                        totalImages}{' '}
+                      slot
+                      {MAX_IMAGES -
+                        totalImages ===
+                      1
+                        ? ''
+                        : 's'}{' '}
+                      remaining
+                    </p>
+
+                    <p className="mt-1 text-[10px] text-zinc-600">
+                      PNG, JPG or WebP ·
+                      Maximum 5MB per image
+                    </p>
+                  </label>
+                )}
+
+                {/* Maximum reached */}
+                {totalImages ===
+                  MAX_IMAGES && (
+                  <div
+                    className={`mt-3 flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-xs ${
+                      lightMode
+                        ? 'border-yellow-400/20 bg-yellow-400/[0.04] text-yellow-600'
+                        : 'border-yellow-400/20 bg-yellow-400/[0.04] text-yellow-400'
+                    }`}
+                  >
+                    <FiCheck size={14} />
+                    Maximum of 5 images reached
+                  </div>
+                )}
               </div>
 
               {/* Featured */}
@@ -672,14 +1131,20 @@ export default function EditProjectPage() {
                         : 'text-zinc-500'
                     }`}
                   >
-                    Highlight this project on your portfolio.
+                    Highlight this project on
+                    your portfolio.
                   </p>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => setFeatured(!featured)}
+                  onClick={() =>
+                    setFeatured(
+                      !featured
+                    )
+                  }
                   aria-pressed={featured}
+                  disabled={saving}
                   className={`relative h-6 w-11 rounded-full transition ${
                     featured
                       ? 'bg-yellow-400'
@@ -736,14 +1201,18 @@ export default function EditProjectPage() {
 
               <button
                 type="submit"
-                disabled={saving || uploading}
+                disabled={
+                  saving || uploading
+                }
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-yellow-400 px-6 py-3 text-sm font-semibold text-black transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {saving || uploading ? (
+                {saving ||
+                uploading ? (
                   <>
                     <FiLoader className="animate-spin" />
+
                     {uploading
-                      ? 'Uploading image...'
+                      ? 'Uploading images...'
                       : 'Saving changes...'}
                   </>
                 ) : (

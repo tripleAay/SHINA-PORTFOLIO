@@ -48,7 +48,7 @@ const SkillsSection = () => {
       aria-labelledby="skills-title"
       className={`relative overflow-hidden transition-colors duration-500 ${
         lightMode
-          ? 'bg-[#EAEAEA] text-gray-950'
+          ? 'bg-[#D9CAB3] text-gray-950'
           : 'bg-[#0b0b0d] text-white'
       }`}
     >

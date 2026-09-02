@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useContext,
   useState,
   useEffect,
   ReactNode,
@@ -26,7 +27,7 @@ export const ThemeProvider = ({
   const [lightMode, setLightMode] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // Load the user's saved preference
+  // Load saved theme preference
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
 
@@ -69,4 +70,14 @@ export const ThemeProvider = ({
       {children}
     </ThemeContext.Provider>
   );
+};
+
+/**
+ * Custom hook for accessing the theme.
+ *
+ * Usage:
+ * const { lightMode, toggleTheme } = useTheme();
+ */
+export const useTheme = () => {
+  return useContext(ThemeContext);
 };

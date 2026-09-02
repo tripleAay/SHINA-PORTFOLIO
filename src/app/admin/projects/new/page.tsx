@@ -1,11 +1,15 @@
 'use client';
 
-import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import {
+  ChangeEvent,
+  FormEvent,
+  useEffect,
+  useState,
+} from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   FiArrowLeft,
-  FiBriefcase,
   FiCheck,
   FiImage,
   FiLoader,
@@ -19,6 +23,7 @@ import { supabase } from '@/app/lib/supabase';
 import { useTheme } from '@/app/contexts/ThemeContext';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_IMAGES = 5;
 
 const categories = [
   'Web Development',
@@ -28,6 +33,11 @@ const categories = [
   'Full Stack',
   'Other',
 ];
+
+interface SelectedImage {
+  file: File;
+  preview: string;
+}
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -40,13 +50,16 @@ export default function NewProjectPage() {
   const [link, setLink] = useState('');
   const [featured, setFeatured] = useState(false);
 
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState('');
+  const [images, setImages] = useState<SelectedImage[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  /* ------------------------------------------------------------------------ */
+  /* Authentication                                                           */
+  /* ------------------------------------------------------------------------ */
 
   useEffect(() => {
     async function checkAuth() {
@@ -65,37 +78,77 @@ export default function NewProjectPage() {
     checkAuth();
   }, [router]);
 
-  function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+  /* ------------------------------------------------------------------------ */
+  /* Image selection                                                          */
+  /* ------------------------------------------------------------------------ */
 
-    if (!file) return;
+  function handleImageChange(
+    event: ChangeEvent<HTMLInputElement>
+  ) {
+    const files = Array.from(event.target.files || []);
+
+    if (!files.length) return;
 
     setError('');
 
-    if (!file.type.startsWith('image/')) {
-      setError('Please select an image file.');
+    const remainingSlots = MAX_IMAGES - images.length;
+
+    if (files.length > remainingSlots) {
+      setError(
+        `You can add up to ${MAX_IMAGES} images per project.`
+      );
+
       event.target.value = '';
       return;
     }
 
-    if (file.size > MAX_FILE_SIZE) {
-      setError('Image must be smaller than 5MB.');
-      event.target.value = '';
-      return;
+    const validImages: SelectedImage[] = [];
+
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) {
+        setError(
+          `"${file.name}" is not a supported image file.`
+        );
+        continue;
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        setError(
+          `"${file.name}" is larger than 5MB.`
+        );
+        continue;
+      }
+
+      validImages.push({
+        file,
+        preview: URL.createObjectURL(file),
+      });
     }
 
-    setImageFile(file);
+    setImages((current) => [...current, ...validImages]);
 
-    const previewUrl = URL.createObjectURL(file);
-    setImagePreview(previewUrl);
+    event.target.value = '';
   }
 
-  function removeImage() {
-    setImageFile(null);
-    setImagePreview('');
+  function removeImage(index: number) {
+    setImages((current) => {
+      const imageToRemove = current[index];
+
+      if (imageToRemove) {
+        URL.revokeObjectURL(imageToRemove.preview);
+      }
+
+      return current.filter((_, imageIndex) => imageIndex !== index);
+    });
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  /* ------------------------------------------------------------------------ */
+  /* Submit                                                                   */
+  /* ------------------------------------------------------------------------ */
+
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
     setError('');
@@ -113,6 +166,8 @@ export default function NewProjectPage() {
 
     setLoading(true);
 
+    const uploadedFilePaths: string[] = [];
+
     try {
       const {
         data: { user },
@@ -123,25 +178,36 @@ export default function NewProjectPage() {
         return;
       }
 
-      let imageUrl: string | null = null;
+      const imageUrls: string[] = [];
 
-      /*
-       * Upload project image if one was selected.
-       */
-      if (imageFile) {
+      /* -------------------------------------------------------------------- */
+      /* Upload all selected images                                           */
+      /* -------------------------------------------------------------------- */
+
+      for (const selectedImage of images) {
         const extension =
-          imageFile.name.split('.').pop()?.toLowerCase() || 'jpg';
+          selectedImage.file.name
+            .split('.')
+            .pop()
+            ?.toLowerCase() || 'jpg';
 
-        const fileName = `${crypto.randomUUID()}.${extension}`;
+        const fileName =
+          `${crypto.randomUUID()}.${extension}`;
+
         const filePath = `projects/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('portfolio-images')
-          .upload(filePath, imageFile, {
-            cacheControl: '3600',
-            upsert: false,
-            contentType: imageFile.type,
-          });
+        const { error: uploadError } =
+          await supabase.storage
+            .from('portfolio-images')
+            .upload(
+              filePath,
+              selectedImage.file,
+              {
+                cacheControl: '3600',
+                upsert: false,
+                contentType: selectedImage.file.type,
+              }
+            );
 
         if (uploadError) {
           throw new Error(
@@ -149,35 +215,72 @@ export default function NewProjectPage() {
           );
         }
 
-        const { data: publicUrlData } = supabase.storage
-          .from('portfolio-images')
-          .getPublicUrl(filePath);
+        uploadedFilePaths.push(filePath);
 
-        imageUrl = publicUrlData.publicUrl;
+        const { data: publicUrlData } =
+          supabase.storage
+            .from('portfolio-images')
+            .getPublicUrl(filePath);
+
+        imageUrls.push(
+          publicUrlData.publicUrl
+        );
       }
 
-      /*
-       * Save project to database.
-       */
-      const { error: insertError } = await supabase
-        .from('portfolio')
-        .insert({
-          title: title.trim(),
-          description: description.trim(),
-          image: imageUrl,
-          link: link.trim() || null,
-          category: category || null,
-          technologies: technologies.trim() || null,
-          featured,
-        });
+      /* -------------------------------------------------------------------- */
+      /* Save project                                                         */
+      /* -------------------------------------------------------------------- */
+
+      const primaryImage =
+        imageUrls.length > 0
+          ? imageUrls[0]
+          : null;
+
+      const { error: insertError } =
+        await supabase
+          .from('portfolio')
+          .insert({
+            title: title.trim(),
+            description: description.trim(),
+            image: primaryImage,
+
+            // All project images
+            images: imageUrls,
+
+            link: link.trim() || null,
+            category: category || null,
+            technologies:
+              technologies.trim() || null,
+            featured,
+          });
+
+      /* -------------------------------------------------------------------- */
+      /* Clean up uploaded files if database insert fails                     */
+      /* -------------------------------------------------------------------- */
 
       if (insertError) {
+        if (uploadedFilePaths.length > 0) {
+          await supabase.storage
+            .from('portfolio-images')
+            .remove(uploadedFilePaths);
+        }
+
         throw new Error(
           `Project could not be saved: ${insertError.message}`
         );
       }
 
-      setSuccess('Project published successfully.');
+      setSuccess(
+        'Project published successfully.'
+      );
+
+      /* -------------------------------------------------------------------- */
+      /* Reset form                                                           */
+      /* -------------------------------------------------------------------- */
+
+      images.forEach((image) => {
+        URL.revokeObjectURL(image.preview);
+      });
 
       setTitle('');
       setDescription('');
@@ -185,12 +288,12 @@ export default function NewProjectPage() {
       setTechnologies('');
       setLink('');
       setFeatured(false);
-      removeImage();
+      setImages([]);
 
-      /*
-       * Give the success message a moment to appear,
-       * then return to the projects page.
-       */
+      /* -------------------------------------------------------------------- */
+      /* Redirect                                                             */
+      /* -------------------------------------------------------------------- */
+
       setTimeout(() => {
         router.push('/admin/projects');
         router.refresh();
@@ -206,11 +309,17 @@ export default function NewProjectPage() {
     }
   }
 
+  /* ------------------------------------------------------------------------ */
+  /* Loading                                                                  */
+  /* ------------------------------------------------------------------------ */
+
   if (checkingAuth) {
     return (
       <main
         className={`flex min-h-screen items-center justify-center ${
-          lightMode ? 'bg-[#F7F5F0]' : 'bg-[#09090B]'
+          lightMode
+            ? 'bg-[#F7F5F0]'
+            : 'bg-[#09090B]'
         }`}
       >
         <FiLoader
@@ -220,6 +329,10 @@ export default function NewProjectPage() {
       </main>
     );
   }
+
+  /* ------------------------------------------------------------------------ */
+  /* Page                                                                     */
+  /* ------------------------------------------------------------------------ */
 
   return (
     <main
@@ -260,7 +373,11 @@ export default function NewProjectPage() {
                   : 'border-white/[0.08] text-zinc-400 hover:bg-white/[0.05]'
               }`}
             >
-              {lightMode ? <FiMoon size={17} /> : <FiSun size={17} />}
+              {lightMode ? (
+                <FiMoon size={17} />
+              ) : (
+                <FiSun size={17} />
+              )}
             </button>
 
             <div className="ml-2 flex h-9 w-9 items-center justify-center rounded-full bg-yellow-400 text-xs font-bold text-black">
@@ -283,13 +400,14 @@ export default function NewProjectPage() {
           </h1>
 
           <p className="mt-2 max-w-xl text-sm text-zinc-500">
-            Add a project to the work displayed on your portfolio.
+            Add a project to the work displayed on
+            your portfolio.
           </p>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-5">
-            {/* Basic information */}
+            {/* Project information */}
             <section
               className={`rounded-2xl border p-5 sm:p-7 ${
                 lightMode
@@ -309,10 +427,15 @@ export default function NewProjectPage() {
 
               <div className="space-y-5">
                 {/* Title */}
-                <Field label="Project title" required>
+                <Field
+                  label="Project title"
+                  required
+                >
                   <input
                     value={title}
-                    onChange={(event) => setTitle(event.target.value)}
+                    onChange={(event) =>
+                      setTitle(event.target.value)
+                    }
                     placeholder="e.g. Fynaro Technologies"
                     disabled={loading}
                     className={inputClasses(lightMode)}
@@ -320,7 +443,10 @@ export default function NewProjectPage() {
                 </Field>
 
                 {/* Description */}
-                <Field label="Description" required>
+                <Field
+                  label="Description"
+                  required
+                >
                   <textarea
                     value={description}
                     onChange={(event) =>
@@ -329,7 +455,9 @@ export default function NewProjectPage() {
                     placeholder="Briefly describe the project, what you built, and the problem it solves."
                     rows={5}
                     disabled={loading}
-                    className={`${inputClasses(lightMode)} resize-none py-3`}
+                    className={`${inputClasses(
+                      lightMode
+                    )} resize-none py-3`}
                   />
 
                   <div className="mt-2 flex justify-end">
@@ -350,7 +478,10 @@ export default function NewProjectPage() {
                     className={inputClasses(lightMode)}
                   >
                     {categories.map((item) => (
-                      <option key={item} value={item}>
+                      <option
+                        key={item}
+                        value={item}
+                      >
                         {item}
                       </option>
                     ))}
@@ -365,7 +496,9 @@ export default function NewProjectPage() {
                   <input
                     value={technologies}
                     onChange={(event) =>
-                      setTechnologies(event.target.value)
+                      setTechnologies(
+                        event.target.value
+                      )
                     }
                     placeholder="Next.js, React, TypeScript, Supabase"
                     disabled={loading}
@@ -374,11 +507,16 @@ export default function NewProjectPage() {
                 </Field>
 
                 {/* Link */}
-                <Field label="Project URL" hint="Optional">
+                <Field
+                  label="Project URL"
+                  hint="Optional"
+                >
                   <input
                     type="url"
                     value={link}
-                    onChange={(event) => setLink(event.target.value)}
+                    onChange={(event) =>
+                      setLink(event.target.value)
+                    }
                     placeholder="https://example.com"
                     disabled={loading}
                     className={inputClasses(lightMode)}
@@ -387,7 +525,7 @@ export default function NewProjectPage() {
               </div>
             </section>
 
-            {/* Image */}
+            {/* Images */}
             <section
               className={`rounded-2xl border p-5 sm:p-7 ${
                 lightMode
@@ -396,18 +534,79 @@ export default function NewProjectPage() {
               }`}
             >
               <div className="mb-6">
-                <h2 className="text-sm font-semibold">
-                  Project image
-                </h2>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-sm font-semibold">
+                      Project images
+                    </h2>
 
-                <p className="mt-1 text-xs text-zinc-500">
-                  Upload an image to display on your portfolio.
-                </p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      Add up to 5 images. The first image
+                      will be the primary project image.
+                    </p>
+                  </div>
+
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium ${
+                      images.length === MAX_IMAGES
+                        ? 'bg-yellow-400/10 text-yellow-500'
+                        : lightMode
+                          ? 'bg-black/[0.04] text-zinc-500'
+                          : 'bg-white/[0.05] text-zinc-500'
+                    }`}
+                  >
+                    {images.length}/{MAX_IMAGES}
+                  </span>
+                </div>
               </div>
 
-              {!imagePreview ? (
+              {/* Image previews */}
+              {images.length > 0 && (
+                <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {images.map((image, index) => (
+                    <div
+                      key={image.preview}
+                      className="group relative aspect-[4/3] overflow-hidden rounded-xl"
+                    >
+                      <img
+                        src={image.preview}
+                        alt={`Project image ${index + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+
+                      {/* Image number */}
+                      <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-medium text-white backdrop-blur-md">
+                        {index === 0
+                          ? 'Primary'
+                          : `Image ${index + 1}`}
+                      </div>
+
+                      {/* Remove */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          removeImage(index)
+                        }
+                        disabled={loading}
+                        aria-label={`Remove image ${index + 1}`}
+                        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-red-500"
+                      >
+                        <FiX size={15} />
+                      </button>
+
+                      {/* Filename */}
+                      <div className="absolute bottom-0 left-0 right-0 truncate bg-black/60 px-3 py-2 text-[10px] text-white opacity-0 backdrop-blur-md transition group-hover:opacity-100">
+                        {image.file.name}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Upload */}
+              {images.length < MAX_IMAGES && (
                 <label
-                  className={`group flex min-h-[240px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed transition ${
+                  className={`group flex min-h-[210px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed transition ${
                     lightMode
                       ? 'border-black/[0.12] hover:border-yellow-400/60 hover:bg-yellow-400/[0.025]'
                       : 'border-white/[0.1] hover:border-yellow-400/50 hover:bg-yellow-400/[0.025]'
@@ -416,6 +615,7 @@ export default function NewProjectPage() {
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
+                    multiple
                     onChange={handleImageChange}
                     disabled={loading}
                     className="hidden"
@@ -426,35 +626,34 @@ export default function NewProjectPage() {
                   </div>
 
                   <p className="mt-4 text-sm font-medium">
-                    Upload project image
+                    {images.length === 0
+                      ? 'Upload project images'
+                      : 'Add more images'}
                   </p>
 
                   <p className="mt-1 text-xs text-zinc-500">
-                    PNG, JPG or WebP · Maximum 5MB
+                    Select up to{' '}
+                    {MAX_IMAGES - images.length}{' '}
+                    more · PNG, JPG or WebP
+                  </p>
+
+                  <p className="mt-1 text-[10px] text-zinc-600">
+                    Maximum 5MB per image
                   </p>
                 </label>
-              ) : (
-                <div className="relative overflow-hidden rounded-xl">
-                  <img
-                    src={imagePreview}
-                    alt="Project preview"
-                    className="max-h-[420px] w-full object-cover"
-                  />
+              )}
 
-                  <button
-                    type="button"
-                    onClick={removeImage}
-                    disabled={loading}
-                    aria-label="Remove image"
-                    className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-red-500"
-                  >
-                    <FiX size={17} />
-                  </button>
-
-                  <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 text-[10px] text-white backdrop-blur-md">
-                    <FiImage size={13} />
-                    {imageFile?.name}
-                  </div>
+              {/* Maximum reached */}
+              {images.length === MAX_IMAGES && (
+                <div
+                  className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-xs ${
+                    lightMode
+                      ? 'border-yellow-400/20 bg-yellow-400/[0.04] text-yellow-600'
+                      : 'border-yellow-400/20 bg-yellow-400/[0.04] text-yellow-400'
+                  }`}
+                >
+                  <FiCheck size={14} />
+                  Maximum of 5 images reached
                 </div>
               )}
             </section>
@@ -474,7 +673,8 @@ export default function NewProjectPage() {
                   </h2>
 
                   <p className="mt-1 text-xs leading-5 text-zinc-500">
-                    Highlight this project on your portfolio.
+                    Highlight this project on your
+                    portfolio.
                   </p>
                 </div>
 
@@ -482,7 +682,9 @@ export default function NewProjectPage() {
                   type="button"
                   role="switch"
                   aria-checked={featured}
-                  onClick={() => setFeatured((value) => !value)}
+                  onClick={() =>
+                    setFeatured((value) => !value)
+                  }
                   disabled={loading}
                   className={`relative h-7 w-12 shrink-0 rounded-full transition ${
                     featured
@@ -494,7 +696,9 @@ export default function NewProjectPage() {
                 >
                   <span
                     className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition ${
-                      featured ? 'left-6' : 'left-1'
+                      featured
+                        ? 'left-6'
+                        : 'left-1'
                     }`}
                   />
                 </button>
@@ -536,7 +740,10 @@ export default function NewProjectPage() {
               >
                 {loading ? (
                   <>
-                    <FiLoader size={16} className="animate-spin" />
+                    <FiLoader
+                      size={16}
+                      className="animate-spin"
+                    />
                     Publishing...
                   </>
                 ) : (
@@ -574,12 +781,19 @@ function Field({
       <div className="mb-2 flex items-center justify-between gap-3">
         <label className="text-sm font-medium">
           {label}
+
           {required && (
-            <span className="ml-1 text-yellow-500">*</span>
+            <span className="ml-1 text-yellow-500">
+              *
+            </span>
           )}
         </label>
 
-        {hint && <span className="text-[10px] text-zinc-600">{hint}</span>}
+        {hint && (
+          <span className="text-[10px] text-zinc-600">
+            {hint}
+          </span>
+        )}
       </div>
 
       {children}

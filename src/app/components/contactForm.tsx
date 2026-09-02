@@ -121,7 +121,7 @@ const ContactForm: React.FC = () => {
       aria-labelledby="contact-title"
       className={`relative overflow-hidden transition-colors duration-500 ${
         lightMode
-          ? 'bg-[#EAEAEA] text-gray-950'
+          ? 'bg-[#D9CAB3]/40 text-gray-950'
           : 'bg-[#0b0b0d] text-white'
       }`}
     >

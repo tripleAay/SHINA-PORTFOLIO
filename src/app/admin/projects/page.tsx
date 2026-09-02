@@ -197,7 +197,7 @@ export default function ProjectsPage() {
           }`}
         >
           <Link
-            href="/admin"
+            href="/admin/dashboard"
             className="flex items-center gap-3"
             onClick={() => setMobileMenuOpen(false)}
           >

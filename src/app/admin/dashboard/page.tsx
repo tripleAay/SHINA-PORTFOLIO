@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -50,20 +50,6 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { lightMode, toggleTheme } = useTheme();
 
-  /*
-   * IMPORTANT:
-   * Do NOT create the Supabase client at module level.
-   *
-   * This prevents the Vercel/Next.js build error caused by:
-   *
-   * export const supabase = createClient();
-   *
-   * inside supabase.ts.
-   *
-   * useMemo keeps one browser client for this component.
-   */
-  const supabase = useMemo(() => createClient(), []);
-
   const [projects, setProjects] = useState<Project[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
 
@@ -81,6 +67,22 @@ export default function AdminDashboard() {
     null
   );
 
+  /*
+   * IMPORTANT:
+   *
+   * Do NOT create the Supabase client during component render.
+   *
+   * This is intentionally NOT:
+   *
+   * const supabase = useMemo(() => createClient(), []);
+   *
+   * Next.js can prerender client components during the Vercel build,
+   * which means createClient() can execute on the server/build side.
+   *
+   * Instead, create the browser client only when an effect or
+   * browser event actually needs it.
+   */
+
   useEffect(() => {
     loadDashboard();
   }, []);
@@ -95,6 +97,12 @@ export default function AdminDashboard() {
     setError('');
 
     try {
+      /*
+       * Create Supabase client only when the browser is actually
+       * running this function.
+       */
+      const supabase = createClient();
+
       /*
        * Check authentication first.
        */
@@ -164,6 +172,11 @@ export default function AdminDashboard() {
     setError('');
 
     try {
+      /*
+       * Create the client only when the browser event fires.
+       */
+      const supabase = createClient();
+
       const { error: signOutError } = await supabase.auth.signOut();
 
       if (signOutError) {
@@ -197,6 +210,11 @@ export default function AdminDashboard() {
 
     try {
       /*
+       * Create client only after the user performs the action.
+       */
+      const supabase = createClient();
+
+      /*
        * Delete the database record first.
        */
       const { error: deleteError } = await supabase
@@ -225,9 +243,23 @@ export default function AdminDashboard() {
         const storagePath = getStoragePathFromUrl(project.image);
 
         if (storagePath) {
-          await supabase.storage
-            .from('portfolio-images')
-            .remove([storagePath]);
+          try {
+            const { error: storageError } = await supabase.storage
+              .from('portfolio-images')
+              .remove([storagePath]);
+
+            if (storageError) {
+              console.warn(
+                'Project deleted, but image cleanup failed:',
+                storageError
+              );
+            }
+          } catch (storageError) {
+            console.warn(
+              'Project deleted, but image cleanup failed:',
+              storageError
+            );
+          }
         }
       }
     } catch (err) {
@@ -254,6 +286,11 @@ export default function AdminDashboard() {
     setError('');
 
     try {
+      /*
+       * Create client only after the user performs the action.
+       */
+      const supabase = createClient();
+
       const { error: deleteError } = await supabase
         .from('messages')
         .delete()
@@ -283,6 +320,11 @@ export default function AdminDashboard() {
     if (message.read) return;
 
     try {
+      /*
+       * Create client only after the user performs the action.
+       */
+      const supabase = createClient();
+
       const { error: updateError } = await supabase
         .from('messages')
         .update({ read: true })
@@ -777,9 +819,7 @@ export default function AdminDashboard() {
                   <div
                     key={project.id}
                     className={`px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-5 ${
-                      lightMode
-                        ? 'border-zinc-200'
-                        : ''
+                      lightMode ? 'border-zinc-200' : ''
                     }`}
                   >
                     {/* Image */}
@@ -1075,6 +1115,7 @@ export default function AdminDashboard() {
               <div className="flex items-center gap-2 text-xs">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75 animate-ping" />
+
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
                 </span>
 

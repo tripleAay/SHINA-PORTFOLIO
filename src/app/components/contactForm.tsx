@@ -1,11 +1,18 @@
 'use client';
 
-import React, { useContext, useState } from 'react';
+import React, {
+  useContext,
+  useMemo,
+  useState,
+} from 'react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { motion } from 'framer-motion';
 import { FiArrowUpRight } from 'react-icons/fi';
-import { toast, ToastContainer } from 'react-toastify';
-import { supabase } from '../lib/supabase';
+import {
+  toast,
+  ToastContainer,
+} from 'react-toastify';
+import { createClient } from '../lib/client';
 
 interface FormData {
   name: string;
@@ -16,16 +23,29 @@ interface FormData {
 const ContactForm: React.FC = () => {
   const { lightMode } = useContext(ThemeContext);
 
+  /*
+   * Create the Supabase browser client inside
+   * the client component instead of importing a
+   * module-level Supabase instance.
+   *
+   * useMemo keeps the same client instance during
+   * the component's lifetime.
+   */
+  const supabase = useMemo(() => createClient(), []);
+
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
     message: '',
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] =
+    useState(false);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement
+    >
   ) => {
     const { name, value } = e.target;
 
@@ -46,18 +66,22 @@ const ContactForm: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const { error: supabaseError } = await supabase
-        .from('messages')
-        .insert([
-          {
-            name: formData.name.trim(),
-            email: formData.email.trim(),
-            message: formData.message.trim(),
-          },
-        ]);
+      const { error: supabaseError } =
+        await supabase
+          .from('messages')
+          .insert([
+            {
+              name: formData.name.trim(),
+              email: formData.email.trim(),
+              message: formData.message.trim(),
+            },
+          ]);
 
       if (supabaseError) {
-        console.error('Supabase error:', supabaseError);
+        console.error(
+          'Supabase error:',
+          supabaseError
+        );
 
         toast.error(
           'Unable to send your message. Please try again.',
@@ -68,7 +92,9 @@ const ContactForm: React.FC = () => {
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
-            theme: lightMode ? 'light' : 'dark',
+            theme: lightMode
+              ? 'light'
+              : 'dark',
           }
         );
 
@@ -85,7 +111,9 @@ const ContactForm: React.FC = () => {
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
-          theme: lightMode ? 'light' : 'dark',
+          theme: lightMode
+            ? 'light'
+            : 'dark',
         }
       );
 
@@ -96,7 +124,10 @@ const ContactForm: React.FC = () => {
         message: '',
       });
     } catch (error) {
-      console.error('Contact form error:', error);
+      console.error(
+        'Contact form error:',
+        error
+      );
 
       toast.error(
         'Something went wrong. Please try again.',
@@ -107,7 +138,9 @@ const ContactForm: React.FC = () => {
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
-          theme: lightMode ? 'light' : 'dark',
+          theme: lightMode
+            ? 'light'
+            : 'dark',
         }
       );
     } finally {
@@ -143,7 +176,9 @@ const ContactForm: React.FC = () => {
       ================================== */}
       <div
         className={`pointer-events-none absolute inset-0 opacity-[0.025] ${
-          lightMode ? 'text-black' : 'text-white'
+          lightMode
+            ? 'text-black'
+            : 'text-white'
         }`}
         style={{
           backgroundImage:
@@ -164,7 +199,6 @@ const ContactForm: React.FC = () => {
       />
 
       <div className="relative mx-auto max-w-5xl px-6 py-28 sm:px-8 md:py-36 lg:px-10 lg:py-44">
-
         {/* =================================
             SECTION LABEL
         ================================== */}
@@ -188,8 +222,14 @@ const ContactForm: React.FC = () => {
         <div className="max-w-2xl">
           <motion.h2
             id="contact-title"
-            initial={{ opacity: 0, y: 18 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{
+              opacity: 0,
+              y: 18,
+            }}
+            whileInView={{
+              opacity: 1,
+              y: 0,
+            }}
             viewport={{
               once: true,
               margin: '-80px',
@@ -212,8 +252,14 @@ const ContactForm: React.FC = () => {
           </motion.h2>
 
           <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{
+              opacity: 0,
+              y: 12,
+            }}
+            whileInView={{
+              opacity: 1,
+              y: 0,
+            }}
             viewport={{
               once: true,
               margin: '-80px',
@@ -229,8 +275,8 @@ const ContactForm: React.FC = () => {
                 : 'text-gray-400'
             }`}
           >
-            Tell me what you&apos;re working on. Let&apos;s see where it
-            goes.
+            Tell me what you&apos;re working on.
+            Let&apos;s see where it goes.
           </motion.p>
         </div>
 
@@ -238,8 +284,14 @@ const ContactForm: React.FC = () => {
             FORM
         ================================== */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{
+            opacity: 0,
+            y: 20,
+          }}
+          whileInView={{
+            opacity: 1,
+            y: 0,
+          }}
           viewport={{
             once: true,
             margin: '-60px',
@@ -255,12 +307,10 @@ const ContactForm: React.FC = () => {
             onSubmit={handleSubmit}
             className="space-y-10"
           >
-
             {/* =================================
                 NAME + EMAIL
             ================================== */}
             <div className="grid gap-10 sm:grid-cols-2">
-
               {/* Name */}
               <div>
                 <label
@@ -360,7 +410,6 @@ const ContactForm: React.FC = () => {
                 ACTION
             ================================== */}
             <div className="flex flex-col gap-5 pt-2 sm:flex-row sm:items-center sm:justify-between">
-
               {/* Availability */}
               <div
                 className={`flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] transition-colors duration-500 ${

@@ -1,17 +1,30 @@
 'use client';
 
-import React, { useContext, useEffect, useMemo, useState } from 'react';
+import React, {
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { ThemeContext } from '../contexts/ThemeContext';
-import { FiArrowUpRight, FiSearch, FiX } from 'react-icons/fi';
+import {
+  FiArrowUpRight,
+  FiSearch,
+  FiX,
+} from 'react-icons/fi';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../lib/supabase';
+import {
+  motion,
+  AnimatePresence,
+} from 'framer-motion';
+import { createClient } from '../lib/client';
 
 type PortfolioProject = {
   id: string;
   title: string;
   description: string;
   image: string | null;
+  images: string[] | null;
   link: string | null;
   category: string | null;
   technologies: string | null;
@@ -20,15 +33,42 @@ type PortfolioProject = {
 };
 
 const Portfolio: React.FC = () => {
-  const { lightMode } = useContext(ThemeContext);
+  const { lightMode } =
+    useContext(ThemeContext);
 
-  const [projects, setProjects] = useState<PortfolioProject[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  /*
+   * IMPORTANT:
+   *
+   * Do NOT use:
+   *
+   * import { supabase } from '../lib/supabase';
+   *
+   * The old supabase.ts created a client at
+   * module evaluation time, which caused the
+   * Vercel production build to fail.
+   *
+   * Create the browser client inside this
+   * client component instead.
+   */
+  const supabase = useMemo(
+    () => createClient(),
+    []
+  );
+
+  const [projects, setProjects] =
+    useState<PortfolioProject[]>([]);
+
+  const [selectedCategory, setSelectedCategory] =
+    useState('All');
+
   const [selectedImage, setSelectedImage] =
     useState<PortfolioProject | null>(null);
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState('');
 
   /*
    * =========================================
@@ -36,26 +76,60 @@ const Portfolio: React.FC = () => {
    * =========================================
    */
   useEffect(() => {
+    let cancelled = false;
+
     const fetchProjects = async () => {
       setIsLoading(true);
       setError('');
 
       try {
-        const { data, error: supabaseError } = await supabase
+        const {
+          data,
+          error: supabaseError,
+        } = await supabase
           .from('portfolio')
           .select(
-            'id, title, description, image, link, category, technologies, featured, created_at'
+            'id, title, description, image, images, link, category, technologies, featured, created_at'
           )
-          .order('created_at', { ascending: false });
+          .order('created_at', {
+            ascending: false,
+          });
+
+        if (cancelled) return;
 
         if (supabaseError) {
-          console.error('Supabase portfolio error:', supabaseError);
-          throw new Error('Unable to load projects.');
+          console.error(
+            'Supabase portfolio error:',
+            supabaseError
+          );
+
+          throw new Error(
+            'Unable to load projects.'
+          );
         }
 
-        setProjects(data ?? []);
+        const normalizedProjects =
+          (data ?? []).map((project) => ({
+            ...project,
+            images: Array.isArray(
+              project.images
+            )
+              ? project.images
+              : project.image
+                ? [project.image]
+                : [],
+          })) as PortfolioProject[];
+
+        setProjects(
+          normalizedProjects
+        );
       } catch (err) {
-        console.error('Portfolio error:', err);
+        if (cancelled) return;
+
+        console.error(
+          'Portfolio error:',
+          err
+        );
 
         setError(
           err instanceof Error
@@ -63,12 +137,18 @@ const Portfolio: React.FC = () => {
             : 'Unable to load projects.'
         );
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchProjects();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase]);
 
   /*
    * =========================================
@@ -76,18 +156,26 @@ const Portfolio: React.FC = () => {
    * =========================================
    */
   const categories = useMemo(() => {
-    const uniqueCategories = Array.from(
-      new Set(
-        projects
-          .map((project) => project.category?.trim())
-          .filter(
-            (category): category is string =>
-              Boolean(category)
-          )
-      )
-    );
+    const uniqueCategories =
+      Array.from(
+        new Set(
+          projects
+            .map((project) =>
+              project.category?.trim()
+            )
+            .filter(
+              (
+                category
+              ): category is string =>
+                Boolean(category)
+            )
+        )
+      );
 
-    return ['All', ...uniqueCategories];
+    return [
+      'All',
+      ...uniqueCategories,
+    ];
   }, [projects]);
 
   /*
@@ -95,16 +183,23 @@ const Portfolio: React.FC = () => {
    * FILTER PROJECTS
    * =========================================
    */
-  const filteredProjects = useMemo(() => {
-    if (selectedCategory === 'All') {
-      return projects;
-    }
+  const filteredProjects =
+    useMemo(() => {
+      if (
+        selectedCategory === 'All'
+      ) {
+        return projects;
+      }
 
-    return projects.filter(
-      (project) =>
-        project.category?.trim() === selectedCategory
-    );
-  }, [projects, selectedCategory]);
+      return projects.filter(
+        (project) =>
+          project.category?.trim() ===
+          selectedCategory
+      );
+    }, [
+      projects,
+      selectedCategory,
+    ]);
 
   /*
    * =========================================
@@ -114,11 +209,16 @@ const Portfolio: React.FC = () => {
   useEffect(() => {
     if (
       selectedCategory !== 'All' &&
-      !categories.includes(selectedCategory)
+      !categories.includes(
+        selectedCategory
+      )
     ) {
       setSelectedCategory('All');
     }
-  }, [categories, selectedCategory]);
+  }, [
+    categories,
+    selectedCategory,
+  ]);
 
   /*
    * =========================================
@@ -126,16 +226,24 @@ const Portfolio: React.FC = () => {
    * =========================================
    */
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const handleKeyDown = (
+      event: KeyboardEvent
+    ) => {
       if (event.key === 'Escape') {
         setSelectedImage(null);
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener(
+      'keydown',
+      handleKeyDown
+    );
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener(
+        'keydown',
+        handleKeyDown
+      );
     };
   }, []);
 
@@ -154,7 +262,9 @@ const Portfolio: React.FC = () => {
       ========================================== */}
       <div
         className={`pointer-events-none absolute inset-0 opacity-[0.018] ${
-          lightMode ? 'text-black' : 'text-white'
+          lightMode
+            ? 'text-black'
+            : 'text-white'
         }`}
         style={{
           backgroundImage:
@@ -164,14 +274,11 @@ const Portfolio: React.FC = () => {
       />
 
       <div className="relative mx-auto max-w-6xl px-6 py-28 sm:px-8 lg:px-10 lg:py-36">
-
         {/* =========================================
             SECTION INTRO
         ========================================== */}
         <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
-
           <div className="max-w-xl">
-
             <div className="mb-5 flex items-center gap-3">
               <span className="h-px w-7 bg-yellow-400" />
 
@@ -188,8 +295,14 @@ const Portfolio: React.FC = () => {
 
             <motion.h2
               id="portfolio-title"
-              initial={{ opacity: 0, y: 14 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{
+                opacity: 0,
+                y: 14,
+              }}
+              whileInView={{
+                opacity: 1,
+                y: 0,
+              }}
               viewport={{
                 once: true,
                 margin: '-80px',
@@ -204,8 +317,14 @@ const Portfolio: React.FC = () => {
             </motion.h2>
 
             <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{
+                opacity: 0,
+                y: 10,
+              }}
+              whileInView={{
+                opacity: 1,
+                y: 0,
+              }}
               viewport={{
                 once: true,
                 margin: '-80px',
@@ -221,8 +340,10 @@ const Portfolio: React.FC = () => {
                   : 'text-gray-500'
               }`}
             >
-              A selection of digital products, interfaces and
-              experiences shaped through engineering and design.
+              A selection of digital
+              products, interfaces and
+              experiences shaped through
+              engineering and design.
             </motion.p>
           </div>
 
@@ -237,7 +358,9 @@ const Portfolio: React.FC = () => {
             }`}
           >
             <span className="text-2xl font-medium tracking-tight">
-              {String(filteredProjects.length).padStart(2, '0')}
+              {String(
+                filteredProjects.length
+              ).padStart(2, '0')}
             </span>
 
             <span className="ml-2 text-[10px] uppercase tracking-[0.18em]">
@@ -249,79 +372,88 @@ const Portfolio: React.FC = () => {
         {/* =========================================
             FILTERS
         ========================================== */}
-        {!isLoading && !error && projects.length > 0 && (
-          <div className="mt-14 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-            {categories.map((category) => {
-              const active =
-                selectedCategory === category;
+        {!isLoading &&
+          !error &&
+          projects.length > 0 && (
+            <div className="mt-14 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+              {categories.map(
+                (category) => {
+                  const active =
+                    selectedCategory ===
+                    category;
 
-              return (
-                <button
-                  key={category}
-                  type="button"
-                  onClick={() =>
-                    setSelectedCategory(category)
-                  }
-                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-[10px] font-medium transition-all duration-200 ${
-                    active
-                      ? 'bg-yellow-400 text-gray-950'
-                      : lightMode
-                        ? 'text-gray-500 hover:bg-gray-100 hover:text-gray-950'
-                        : 'text-gray-500 hover:bg-white/5 hover:text-gray-200'
-                  }`}
-                >
-                  {category}
-                </button>
-              );
-            })}
-          </div>
-        )}
+                  return (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() =>
+                        setSelectedCategory(
+                          category
+                        )
+                      }
+                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-[10px] font-medium transition-all duration-200 ${
+                        active
+                          ? 'bg-yellow-400 text-gray-950'
+                          : lightMode
+                            ? 'text-gray-500 hover:bg-gray-100 hover:text-gray-950'
+                            : 'text-gray-500 hover:bg-white/5 hover:text-gray-200'
+                      }`}
+                    >
+                      {category}
+                    </button>
+                  );
+                }
+              )}
+            </div>
+          )}
 
         {/* =========================================
             LOADING STATE
         ========================================== */}
         {isLoading && (
           <div className="mt-20 grid grid-cols-1 gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map((item) => (
-              <div
-                key={item}
-                className="animate-pulse"
-              >
+            {[1, 2, 3].map(
+              (item) => (
                 <div
-                  className={`aspect-[16/10] rounded-lg ${
-                    lightMode
-                      ? 'bg-black/[0.05]'
-                      : 'bg-white/[0.04]'
-                  }`}
-                />
-
-                <div className="mt-5">
+                  key={item}
+                  className="animate-pulse"
+                >
                   <div
-                    className={`h-3 w-2/3 rounded ${
+                    className={`aspect-[16/10] rounded-lg ${
                       lightMode
-                        ? 'bg-black/[0.06]'
-                        : 'bg-white/[0.05]'
-                    }`}
-                  />
-
-                  <div
-                    className={`mt-3 h-2 w-full rounded ${
-                      lightMode
-                        ? 'bg-black/[0.04]'
+                        ? 'bg-black/[0.05]'
                         : 'bg-white/[0.04]'
                     }`}
                   />
 
-                  <div
-                    className={`mt-2 h-2 w-4/5 rounded ${
-                      lightMode
-                        ? 'bg-black/[0.04]'
-                        : 'bg-white/[0.04]'
-                    }`}
-                  />
+                  <div className="mt-5">
+                    <div
+                      className={`h-3 w-2/3 rounded ${
+                        lightMode
+                          ? 'bg-black/[0.06]'
+                          : 'bg-white/[0.05]'
+                      }`}
+                    />
+
+                    <div
+                      className={`mt-3 h-2 w-full rounded ${
+                        lightMode
+                          ? 'bg-black/[0.04]'
+                          : 'bg-white/[0.04]'
+                      }`}
+                    />
+
+                    <div
+                      className={`mt-2 h-2 w-4/5 rounded ${
+                        lightMode
+                          ? 'bg-black/[0.04]'
+                          : 'bg-white/[0.04]'
+                      }`}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            )}
           </div>
         )}
 
@@ -342,7 +474,9 @@ const Portfolio: React.FC = () => {
 
             <button
               type="button"
-              onClick={() => window.location.reload()}
+              onClick={() =>
+                window.location.reload()
+              }
               className="mt-5 rounded-full bg-yellow-400 px-5 py-2.5 text-xs font-semibold text-gray-950 transition-colors hover:bg-yellow-300"
             >
               Try again
@@ -364,7 +498,8 @@ const Portfolio: React.FC = () => {
                     : 'text-gray-400'
                 }`}
               >
-                No projects available yet.
+                No projects available
+                yet.
               </p>
             </div>
           )}
@@ -374,207 +509,242 @@ const Portfolio: React.FC = () => {
         ========================================== */}
         {!isLoading &&
           !error &&
-          filteredProjects.length > 0 && (
+          filteredProjects.length >
+            0 && (
             <motion.div
               layout
               className="mt-12 grid grid-cols-1 gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3"
             >
               <AnimatePresence mode="popLayout">
-                {filteredProjects.map((project) => (
-                  <motion.article
-                    key={project.id}
-                    layout
-                    initial={{
-                      opacity: 0,
-                      y: 12,
-                    }}
-                    animate={{
-                      opacity: 1,
-                      y: 0,
-                    }}
-                    exit={{
-                      opacity: 0,
-                      y: -12,
-                    }}
-                    transition={{
-                      duration: 0.35,
-                      ease: [0.22, 1, 0.36, 1],
-                    }}
-                    className="group"
-                  >
-                    {/* =================================
-                        IMAGE
-                    ================================== */}
-                    <div
-                      className={`relative overflow-hidden rounded-lg ${
-                        lightMode
-                          ? 'bg-gray-100'
-                          : 'bg-white/[0.03]'
-                      }`}
+                {filteredProjects.map(
+                  (project) => (
+                    <motion.article
+                      key={project.id}
+                      layout
+                      initial={{
+                        opacity: 0,
+                        y: 12,
+                      }}
+                      animate={{
+                        opacity: 1,
+                        y: 0,
+                      }}
+                      exit={{
+                        opacity: 0,
+                        y: -12,
+                      }}
+                      transition={{
+                        duration: 0.35,
+                        ease: [
+                          0.22,
+                          1,
+                          0.36,
+                          1,
+                        ],
+                      }}
+                      className="group"
                     >
-                      <div className="relative aspect-[16/10] overflow-hidden">
+                      {/* =================================
+                          IMAGE
+                      ================================== */}
+                      <div
+                        className={`relative overflow-hidden rounded-lg ${
+                          lightMode
+                            ? 'bg-gray-100'
+                            : 'bg-white/[0.03]'
+                        }`}
+                      >
+                        <div className="relative aspect-[16/10] overflow-hidden">
+                          {project.image ? (
+                            <Image
+                              src={
+                                project.image
+                              }
+                              alt={
+                                project.title ||
+                                'Portfolio project'
+                              }
+                              fill
+                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 360px"
+                              className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.025]"
+                            />
+                          ) : (
+                            <div
+                              className={`flex h-full w-full items-center justify-center ${
+                                lightMode
+                                  ? 'bg-gray-100'
+                                  : 'bg-white/[0.03]'
+                              }`}
+                            >
+                              <span
+                                className={`text-[10px] uppercase tracking-[0.18em] ${
+                                  lightMode
+                                    ? 'text-gray-400'
+                                    : 'text-gray-600'
+                                }`}
+                              >
+                                No image
+                              </span>
+                            </div>
+                          )}
 
-                        {project.image ? (
-                          <Image
-                            src={project.image}
-                            alt={
-                              project.title ||
-                              'Portfolio project'
-                            }
-                            fill
-                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 360px"
-                            className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.025]"
-                          />
-                        ) : (
-                          <div
-                            className={`flex h-full w-full items-center justify-center ${
-                              lightMode
-                                ? 'bg-gray-100'
-                                : 'bg-white/[0.03]'
-                            }`}
-                          >
+                          {/* Very light image treatment */}
+                          <div className="pointer-events-none absolute inset-0 bg-black/[0.02]" />
+
+                          {/* Hover action */}
+                          {project.image && (
+                            <div className="absolute right-3 top-3 opacity-0 transition-all duration-300 group-hover:opacity-100">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setSelectedImage(
+                                    project
+                                  )
+                                }
+                                aria-label={`Preview ${project.title}`}
+                                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-950 shadow-sm backdrop-blur-sm transition-transform duration-200 hover:scale-105"
+                              >
+                                <FiSearch
+                                  size={13}
+                                />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* =================================
+                          PROJECT INFORMATION
+                      ================================== */}
+                      <div className="mt-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3
+                                className={`text-sm font-semibold tracking-[-0.015em] ${
+                                  lightMode
+                                    ? 'text-gray-950'
+                                    : 'text-gray-100'
+                                }`}
+                              >
+                                {
+                                  project.title
+                                }
+                              </h3>
+
+                              {project.featured && (
+                                <span className="rounded-full bg-yellow-400/10 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.12em] text-yellow-600 dark:text-yellow-400">
+                                  Featured
+                                </span>
+                              )}
+                            </div>
+
+                            <p
+                              className={`mt-2 max-w-sm text-xs leading-5 ${
+                                lightMode
+                                  ? 'text-gray-500'
+                                  : 'text-gray-500'
+                              }`}
+                            >
+                              {
+                                project.description
+                              }
+                            </p>
+                          </div>
+
+                          {/* External link */}
+                          {project.link &&
+                            project.link !==
+                              '#' && (
+                              <a
+                                href={
+                                  project.link
+                                }
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label={`Open ${project.title}`}
+                                className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-all duration-200 ${
+                                  lightMode
+                                    ? 'border-gray-900/10 text-gray-400 hover:border-gray-900/20 hover:bg-gray-950 hover:text-white'
+                                    : 'border-white/10 text-gray-500 hover:border-white/20 hover:bg-white hover:text-gray-950'
+                                }`}
+                              >
+                                <FiArrowUpRight
+                                  size={
+                                    13
+                                  }
+                                />
+                              </a>
+                            )}
+                        </div>
+
+                        {/* =================================
+                            TECHNOLOGIES
+                        ================================== */}
+                        {project.technologies && (
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {project.technologies
+                              .split(',')
+                              .map(
+                                (
+                                  technology
+                                ) =>
+                                  technology.trim()
+                              )
+                              .filter(Boolean)
+                              .map(
+                                (
+                                  technology
+                                ) => (
+                                  <span
+                                    key={
+                                      technology
+                                    }
+                                    className={`rounded-full px-2 py-1 text-[8px] font-medium uppercase tracking-[0.12em] ${
+                                      lightMode
+                                        ? 'bg-black/[0.035] text-gray-500'
+                                        : 'bg-white/[0.04] text-gray-500'
+                                    }`}
+                                  >
+                                    {
+                                      technology
+                                    }
+                                  </span>
+                                )
+                              )}
+                          </div>
+                        )}
+
+                        {/* =================================
+                            CATEGORY
+                        ================================== */}
+                        {project.category && (
+                          <div className="mt-3 flex items-center gap-2">
                             <span
-                              className={`text-[10px] uppercase tracking-[0.18em] ${
+                              className={`h-1 w-1 rounded-full ${
+                                lightMode
+                                  ? 'bg-yellow-500'
+                                  : 'bg-yellow-400'
+                              }`}
+                            />
+
+                            <span
+                              className={`text-[9px] font-medium uppercase tracking-[0.18em] ${
                                 lightMode
                                   ? 'text-gray-400'
                                   : 'text-gray-600'
                               }`}
                             >
-                              No image
+                              {
+                                project.category
+                              }
                             </span>
                           </div>
                         )}
-
-                        {/* Very light image treatment */}
-                        <div className="pointer-events-none absolute inset-0 bg-black/[0.02]" />
-
-                        {/* Hover action */}
-                        {project.image && (
-                          <div className="absolute right-3 top-3 opacity-0 transition-all duration-300 group-hover:opacity-100">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setSelectedImage(project)
-                              }
-                              aria-label={`Preview ${project.title}`}
-                              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-950 shadow-sm backdrop-blur-sm transition-transform duration-200 hover:scale-105"
-                            >
-                              <FiSearch size={13} />
-                            </button>
-                          </div>
-                        )}
                       </div>
-                    </div>
-
-                    {/* =================================
-                        PROJECT INFORMATION
-                    ================================== */}
-                    <div className="mt-4">
-
-                      <div className="flex items-start justify-between gap-4">
-
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3
-                              className={`text-sm font-semibold tracking-[-0.015em] ${
-                                lightMode
-                                  ? 'text-gray-950'
-                                  : 'text-gray-100'
-                              }`}
-                            >
-                              {project.title}
-                            </h3>
-
-                            {project.featured && (
-                              <span className="rounded-full bg-yellow-400/10 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.12em] text-yellow-600 dark:text-yellow-400">
-                                Featured
-                              </span>
-                            )}
-                          </div>
-
-                          <p
-                            className={`mt-2 max-w-sm text-xs leading-5 ${
-                              lightMode
-                                ? 'text-gray-500'
-                                : 'text-gray-500'
-                            }`}
-                          >
-                            {project.description}
-                          </p>
-                        </div>
-
-                        {/* External link */}
-                        {project.link &&
-                          project.link !== '#' && (
-                            <a
-                              href={project.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              aria-label={`Open ${project.title}`}
-                              className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-all duration-200 ${
-                                lightMode
-                                  ? 'border-gray-900/10 text-gray-400 hover:border-gray-900/20 hover:bg-gray-950 hover:text-white'
-                                  : 'border-white/10 text-gray-500 hover:border-white/20 hover:bg-white hover:text-gray-950'
-                              }`}
-                            >
-                              <FiArrowUpRight size={13} />
-                            </a>
-                          )}
-                      </div>
-
-                      {/* =================================
-                          TECHNOLOGIES
-                      ================================== */}
-                      {project.technologies && (
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                          {project.technologies
-                            .split(',')
-                            .map((technology) =>
-                              technology.trim()
-                            )
-                            .filter(Boolean)
-                            .map((technology) => (
-                              <span
-                                key={technology}
-                                className={`rounded-full px-2 py-1 text-[8px] font-medium uppercase tracking-[0.12em] ${
-                                  lightMode
-                                    ? 'bg-black/[0.035] text-gray-500'
-                                    : 'bg-white/[0.04] text-gray-500'
-                                }`}
-                              >
-                                {technology}
-                              </span>
-                            ))}
-                        </div>
-                      )}
-
-                      {/* =================================
-                          CATEGORY
-                      ================================== */}
-                      {project.category && (
-                        <div className="mt-3 flex items-center gap-2">
-                          <span
-                            className={`h-1 w-1 rounded-full ${
-                              lightMode
-                                ? 'bg-yellow-500'
-                                : 'bg-yellow-400'
-                            }`}
-                          />
-
-                          <span
-                            className={`text-[9px] font-medium uppercase tracking-[0.18em] ${
-                              lightMode
-                                ? 'text-gray-400'
-                                : 'text-gray-600'
-                            }`}
-                          >
-                            {project.category}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </motion.article>
-                ))}
+                    </motion.article>
+                  )
+                )}
               </AnimatePresence>
             </motion.div>
           )}
@@ -585,7 +755,8 @@ const Portfolio: React.FC = () => {
         {!isLoading &&
           !error &&
           projects.length > 0 &&
-          filteredProjects.length === 0 && (
+          filteredProjects.length ===
+            0 && (
             <div className="mt-20 flex flex-col items-center justify-center py-16 text-center">
               <p
                 className={`text-sm ${
@@ -594,13 +765,16 @@ const Portfolio: React.FC = () => {
                     : 'text-gray-400'
                 }`}
               >
-                No projects in this category.
+                No projects in this
+                category.
               </p>
 
               <button
                 type="button"
                 onClick={() =>
-                  setSelectedCategory('All')
+                  setSelectedCategory(
+                    'All'
+                  )
                 }
                 className="mt-5 text-xs font-semibold text-yellow-500 transition-colors hover:text-yellow-400"
               >
@@ -620,7 +794,6 @@ const Portfolio: React.FC = () => {
           }`}
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
             <p
               className={`text-[10px] uppercase tracking-[0.18em] ${
                 lightMode
@@ -628,7 +801,8 @@ const Portfolio: React.FC = () => {
                   : 'text-gray-600'
               }`}
             >
-              Selected work · 2024 — 2026
+              Selected work · 2024 —
+              2026
             </p>
 
             <p
@@ -638,7 +812,8 @@ const Portfolio: React.FC = () => {
                   : 'text-gray-600'
               }`}
             >
-              More projects coming soon.
+              More projects coming
+              soon.
             </p>
           </div>
         </div>
@@ -648,55 +823,70 @@ const Portfolio: React.FC = () => {
           IMAGE PREVIEW
       ========================================== */}
       <AnimatePresence>
-        {selectedImage && selectedImage.image && (
-          <motion.div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-5 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSelectedImage(null)}
-          >
+        {selectedImage &&
+          selectedImage.image && (
             <motion.div
-              className="relative w-full max-w-4xl"
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-5 backdrop-blur-sm"
               initial={{
                 opacity: 0,
-                scale: 0.97,
               }}
               animate={{
                 opacity: 1,
-                scale: 1,
               }}
               exit={{
                 opacity: 0,
-                scale: 0.97,
               }}
-              transition={{
-                duration: 0.25,
-                ease: 'easeOut',
-              }}
-              onClick={(event) =>
-                event.stopPropagation()
+              onClick={() =>
+                setSelectedImage(null)
               }
             >
-              <Image
-                src={selectedImage.image}
-                alt={selectedImage.title}
-                width={1200}
-                height={800}
-                className="max-h-[80vh] w-full rounded-lg object-contain"
-              />
-
-              <button
-                type="button"
-                onClick={() => setSelectedImage(null)}
-                aria-label="Close preview"
-                className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white text-gray-950 shadow-lg transition-transform hover:scale-105"
+              <motion.div
+                className="relative w-full max-w-4xl"
+                initial={{
+                  opacity: 0,
+                  scale: 0.97,
+                }}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                }}
+                exit={{
+                  opacity: 0,
+                  scale: 0.97,
+                }}
+                transition={{
+                  duration: 0.25,
+                  ease: 'easeOut',
+                }}
+                onClick={(event) =>
+                  event.stopPropagation()
+                }
               >
-                <FiX size={16} />
-              </button>
+                <Image
+                  src={
+                    selectedImage.image
+                  }
+                  alt={
+                    selectedImage.title
+                  }
+                  width={1200}
+                  height={800}
+                  className="max-h-[80vh] w-full rounded-lg object-contain"
+                />
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedImage(null)
+                  }
+                  aria-label="Close preview"
+                  className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white text-gray-950 shadow-lg transition-transform hover:scale-105"
+                >
+                  <FiX size={16} />
+                </button>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
+          )}
       </AnimatePresence>
     </section>
   );

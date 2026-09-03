@@ -68,60 +68,89 @@ export default function AdminDashboard() {
   );
 
   /*
+   * ============================================================
+   * AUTHENTICATION
+   * ============================================================
+   *
    * IMPORTANT:
    *
-   * Do NOT create the Supabase client during component render.
+   * The dashboard does not load projects or messages until
+   * Supabase confirms that the visitor is authenticated.
    *
-   * This is intentionally NOT:
+   * If there is no authenticated user:
    *
-   * const supabase = useMemo(() => createClient(), []);
+   * /admin/dashboard
+   *        ↓
+   * /admin/login
    *
-   * Next.js can prerender client components during the Vercel build,
-   * which means createClient() can execute on the server/build side.
-   *
-   * Instead, create the browser client only when an effect or
-   * browser event actually needs it.
+   * We also intentionally create the Supabase browser client
+   * inside the effect/function instead of during render.
    */
 
   useEffect(() => {
-    loadDashboard();
-  }, []);
+    let mounted = true;
 
-  async function loadDashboard(showRefreshLoader = false) {
-    if (showRefreshLoader) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
+    async function checkAuthentication() {
+      try {
+        const supabase = createClient();
+
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        /*
+         * No valid Supabase user.
+         *
+         * Redirect immediately to the admin login page.
+         */
+        if (userError || !user) {
+          if (mounted) {
+            router.replace('/admin/login');
+          }
+
+          return;
+        }
+
+        /*
+         * Authentication succeeded.
+         *
+         * Only now load the protected dashboard data.
+         */
+        if (mounted) {
+          await loadDashboardData(supabase);
+        }
+      } catch (err) {
+        console.error('Authentication check failed:', err);
+
+        if (mounted) {
+          router.replace('/admin/login');
+        }
+      }
     }
 
+    checkAuthentication();
+
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
+
+  /*
+   * ============================================================
+   * LOAD DASHBOARD DATA
+   * ============================================================
+   */
+
+  async function loadDashboardData(
+    supabase: ReturnType<typeof createClient>
+  ) {
+    setLoading(true);
     setError('');
 
     try {
       /*
-       * Create Supabase client only when the browser is actually
-       * running this function.
-       */
-      const supabase = createClient();
-
-      /*
-       * Check authentication first.
-       */
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError) {
-        throw new Error(userError.message);
-      }
-
-      if (!user) {
-        router.replace('/admin/login');
-        return;
-      }
-
-      /*
-       * Load projects and messages at the same time.
+       * Load projects and messages simultaneously.
        */
       const [projectsResult, messagesResult] = await Promise.all([
         supabase
@@ -139,18 +168,27 @@ export default function AdminDashboard() {
           .order('created_at', { ascending: false }),
       ]);
 
+      /*
+       * Check projects query.
+       */
       if (projectsResult.error) {
         throw new Error(
           `Could not load projects: ${projectsResult.error.message}`
         );
       }
 
+      /*
+       * Check messages query.
+       */
       if (messagesResult.error) {
         throw new Error(
           `Could not load messages: ${messagesResult.error.message}`
         );
       }
 
+      /*
+       * Update UI.
+       */
       setProjects((projectsResult.data || []) as Project[]);
       setMessages((messagesResult.data || []) as Message[]);
     } catch (err) {
@@ -163,26 +201,82 @@ export default function AdminDashboard() {
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  /*
+   * ============================================================
+   * REFRESH DASHBOARD
+   * ============================================================
+   *
+   * Authentication is checked again before refreshing protected
+   * dashboard data.
+   */
+
+  async function loadDashboard(showRefreshLoader = false) {
+    if (showRefreshLoader) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
+    setError('');
+
+    try {
+      const supabase = createClient();
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      /*
+       * Session disappeared or expired.
+       */
+      if (userError || !user) {
+        router.replace('/admin/login');
+        return;
+      }
+
+      await loadDashboardData(supabase);
+    } catch (err) {
+      console.error('Dashboard refresh error:', err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Something went wrong while refreshing the dashboard.'
+      );
+    } finally {
+      setLoading(false);
       setRefreshing(false);
     }
   }
+
+  /*
+   * ============================================================
+   * SIGN OUT
+   * ============================================================
+   */
 
   async function handleSignOut() {
     setSigningOut(true);
     setError('');
 
     try {
-      /*
-       * Create the client only when the browser event fires.
-       */
       const supabase = createClient();
 
-      const { error: signOutError } = await supabase.auth.signOut();
+      const { error: signOutError } =
+        await supabase.auth.signOut();
 
       if (signOutError) {
         throw new Error(signOutError.message);
       }
 
+      /*
+       * Replace instead of push so the user cannot simply
+       * navigate back into the dashboard through browser history.
+       */
       router.replace('/admin/login');
       router.refresh();
     } catch (err) {
@@ -198,6 +292,12 @@ export default function AdminDashboard() {
     }
   }
 
+  /*
+   * ============================================================
+   * DELETE PROJECT
+   * ============================================================
+   */
+
   async function handleDeleteProject(project: Project) {
     const confirmed = window.confirm(
       `Are you sure you want to delete "${project.title}"?\n\nThis action cannot be undone.`
@@ -209,13 +309,24 @@ export default function AdminDashboard() {
     setError('');
 
     try {
-      /*
-       * Create client only after the user performs the action.
-       */
       const supabase = createClient();
 
       /*
-       * Delete the database record first.
+       * Verify the current session before performing
+       * a protected database operation.
+       */
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        router.replace('/admin/login');
+        return;
+      }
+
+      /*
+       * Delete database record first.
        */
       const { error: deleteError } = await supabase
         .from('portfolio')
@@ -227,26 +338,24 @@ export default function AdminDashboard() {
       }
 
       /*
-       * Remove the project from the UI immediately.
+       * Remove from UI immediately.
        */
       setProjects((current) =>
         current.filter((item) => item.id !== project.id)
       );
 
       /*
-       * If the project has an image, try to remove it from Storage too.
-       *
-       * This is intentionally non-blocking because the database record
-       * has already been successfully deleted.
+       * Remove associated image from Storage if possible.
        */
       if (project.image) {
         const storagePath = getStoragePathFromUrl(project.image);
 
         if (storagePath) {
           try {
-            const { error: storageError } = await supabase.storage
-              .from('portfolio-images')
-              .remove([storagePath]);
+            const { error: storageError } =
+              await supabase.storage
+                .from('portfolio-images')
+                .remove([storagePath]);
 
             if (storageError) {
               console.warn(
@@ -275,6 +384,12 @@ export default function AdminDashboard() {
     }
   }
 
+  /*
+   * ============================================================
+   * DELETE MESSAGE
+   * ============================================================
+   */
+
   async function handleDeleteMessage(message: Message) {
     const confirmed = window.confirm(
       `Delete the message from ${message.name}?\n\nThis action cannot be undone.`
@@ -286,10 +401,20 @@ export default function AdminDashboard() {
     setError('');
 
     try {
-      /*
-       * Create client only after the user performs the action.
-       */
       const supabase = createClient();
+
+      /*
+       * Verify authentication.
+       */
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        router.replace('/admin/login');
+        return;
+      }
 
       const { error: deleteError } = await supabase
         .from('messages')
@@ -316,14 +441,30 @@ export default function AdminDashboard() {
     }
   }
 
+  /*
+   * ============================================================
+   * MARK MESSAGE AS READ
+   * ============================================================
+   */
+
   async function handleMarkMessageAsRead(message: Message) {
     if (message.read) return;
 
     try {
-      /*
-       * Create client only after the user performs the action.
-       */
       const supabase = createClient();
+
+      /*
+       * Verify authentication.
+       */
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        router.replace('/admin/login');
+        return;
+      }
 
       const { error: updateError } = await supabase
         .from('messages')
@@ -352,6 +493,12 @@ export default function AdminDashboard() {
     }
   }
 
+  /*
+   * ============================================================
+   * STORAGE HELPER
+   * ============================================================
+   */
+
   function getStoragePathFromUrl(url: string) {
     const marker =
       '/storage/v1/object/public/portfolio-images/';
@@ -367,6 +514,12 @@ export default function AdminDashboard() {
     );
   }
 
+  /*
+   * ============================================================
+   * STATS
+   * ============================================================
+   */
+
   const unreadMessages = messages.filter(
     (message) => !message.read
   ).length;
@@ -374,6 +527,12 @@ export default function AdminDashboard() {
   const featuredProjects = projects.filter(
     (project) => project.featured
   ).length;
+
+  /*
+   * ============================================================
+   * THEME CLASSES
+   * ============================================================
+   */
 
   const pageBackground = lightMode
     ? 'bg-[#f7f4ee] text-zinc-900'
@@ -395,6 +554,15 @@ export default function AdminDashboard() {
     ? 'bg-white border-zinc-200'
     : 'bg-zinc-900 border-zinc-800';
 
+  /*
+   * ============================================================
+   * LOADING STATE
+   * ============================================================
+   *
+   * While authentication is being checked, do NOT render
+   * the dashboard itself.
+   */
+
   if (loading) {
     return (
       <main
@@ -404,12 +572,18 @@ export default function AdminDashboard() {
           <FiRefreshCw className="w-6 h-6 animate-spin text-yellow-400" />
 
           <p className={`text-sm ${mutedText}`}>
-            Loading dashboard...
+            Checking authentication...
           </p>
         </div>
       </main>
     );
   }
+
+  /*
+   * ============================================================
+   * DASHBOARD
+   * ============================================================
+   */
 
   return (
     <main className={`min-h-screen ${pageBackground}`}>
@@ -443,6 +617,7 @@ export default function AdminDashboard() {
         >
           <div className="max-w-7xl mx-auto px-5 sm:px-8">
             <div className="h-20 flex items-center justify-between">
+
               {/* Brand */}
               <Link
                 href="/admin/dashboard"
@@ -507,7 +682,9 @@ export default function AdminDashboard() {
                   <FiLogOut className="w-4 h-4" />
 
                   <span className="hidden sm:inline">
-                    {signingOut ? 'Signing out...' : 'Sign out'}
+                    {signingOut
+                      ? 'Signing out...'
+                      : 'Sign out'}
                   </span>
                 </button>
               </div>
@@ -517,6 +694,7 @@ export default function AdminDashboard() {
 
         {/* Content */}
         <div className="max-w-7xl mx-auto px-5 sm:px-8 py-10">
+
           {/* Back */}
           <Link
             href="/"
@@ -578,6 +756,8 @@ export default function AdminDashboard() {
 
           {/* Stats */}
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+
+            {/* Projects */}
             <div
               className={`rounded-2xl border p-5 ${cardBackground}`}
             >
@@ -606,6 +786,7 @@ export default function AdminDashboard() {
               </p>
             </div>
 
+            {/* Featured */}
             <div
               className={`rounded-2xl border p-5 ${cardBackground}`}
             >
@@ -634,6 +815,7 @@ export default function AdminDashboard() {
               </p>
             </div>
 
+            {/* Messages */}
             <div
               className={`rounded-2xl border p-5 ${cardBackground}`}
             >
@@ -662,6 +844,7 @@ export default function AdminDashboard() {
               </p>
             </div>
 
+            {/* Unread */}
             <div
               className={`rounded-2xl border p-5 ${cardBackground}`}
             >
@@ -693,6 +876,7 @@ export default function AdminDashboard() {
 
           {/* Quick actions */}
           <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+
             <Link
               href="/admin/projects/new"
               className={`group rounded-2xl border p-6 transition-all duration-300 ${
@@ -989,6 +1173,7 @@ export default function AdminDashboard() {
                     }`}
                   >
                     <div className="flex flex-col lg:flex-row lg:items-start gap-5">
+
                       {/* Avatar */}
                       <div
                         className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center ${
@@ -1048,9 +1233,7 @@ export default function AdminDashboard() {
                           <button
                             type="button"
                             onClick={() =>
-                              handleMarkMessageAsRead(
-                                message
-                              )
+                              handleMarkMessageAsRead(message)
                             }
                             className={`px-3 py-2 rounded-full text-xs font-medium transition-colors ${
                               lightMode

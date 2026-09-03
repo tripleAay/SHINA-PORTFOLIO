@@ -1,3 +1,4 @@
+
 'use client';
 
 import { FormEvent, useContext, useState } from 'react';
@@ -21,9 +22,7 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      // IMPORTANT:
-      // Create the Supabase client only when the user submits the form.
-      // Do NOT create it at component render time.
+      // Create the Supabase client only when submitting the form.
       const supabase = createClient();
 
       const { error: loginError } =
@@ -32,12 +31,14 @@ export default function AdminLoginPage() {
           password,
         });
 
+      // Login failed
       if (loginError) {
         setError(loginError.message);
         return;
       }
 
-      router.push('/admin');
+      // Login successful → Admin Dashboard
+      router.push('/admin/dashboard');
       router.refresh();
     } catch (err) {
       console.error('Admin login error:', err);
@@ -61,6 +62,7 @@ export default function AdminLoginPage() {
       }`}
     >
       <div className="w-full max-w-md">
+
         {/* Header */}
         <div className="mb-8 text-center">
           <div
@@ -95,6 +97,7 @@ export default function AdminLoginPage() {
           }`}
         >
           <form onSubmit={handleLogin} className="space-y-5">
+
             {/* Email */}
             <div>
               <label
@@ -120,7 +123,9 @@ export default function AdminLoginPage() {
                   lightMode
                     ? 'border-zinc-300 bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20'
                     : 'border-zinc-700 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20'
-                } ${loading ? 'cursor-not-allowed opacity-60' : ''}`}
+                } ${
+                  loading ? 'cursor-not-allowed opacity-60' : ''
+                }`}
               />
             </div>
 
@@ -149,7 +154,9 @@ export default function AdminLoginPage() {
                   lightMode
                     ? 'border-zinc-300 bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20'
                     : 'border-zinc-700 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20'
-                } ${loading ? 'cursor-not-allowed opacity-60' : ''}`}
+                } ${
+                  loading ? 'cursor-not-allowed opacity-60' : ''
+                }`}
               />
             </div>
 
@@ -171,11 +178,11 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${
+              className={`w-full rounded-xl bg-yellow-400 px-4 py-3 text-sm font-semibold text-zinc-950 transition-all duration-200 ${
                 loading
                   ? 'cursor-not-allowed opacity-60'
-                  : 'hover:-translate-y-0.5 hover:shadow-lg'
-              } bg-yellow-400 text-zinc-950 hover:bg-yellow-300`}
+                  : 'hover:-translate-y-0.5 hover:bg-yellow-300 hover:shadow-lg'
+              }`}
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
@@ -194,3 +201,4 @@ export default function AdminLoginPage() {
     </main>
   );
 }
+

@@ -1,6 +1,6 @@
 'use client';
 
-import { useContext, useEffect, useState } from 'react';
+import { FormEvent, useContext, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -41,6 +41,121 @@ const Hero = () => {
   const [activeImage, setActiveImage] = useState(0);
 
   /*
+   * ============================================================
+   * HERO IMAGE PROTECTION
+   * ============================================================
+   *
+   * This does NOT make the images impossible to obtain.
+   * Anything displayed in a browser can ultimately be captured.
+   *
+   * These protections prevent casual:
+   * - Right-click → Save image
+   * - Dragging image to desktop
+   * - Native image dragging
+   * - Easy keyboard shortcuts
+   * - Text selection around the protected image
+   */
+
+  useEffect(() => {
+    const preventImageContextMenu = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+
+      if (target?.closest('[data-protected-image="true"]')) {
+        event.preventDefault();
+      }
+    };
+
+    const preventImageDrag = (event: DragEvent) => {
+      const target = event.target as HTMLElement | null;
+
+      if (target?.closest('[data-protected-image="true"]')) {
+        event.preventDefault();
+      }
+    };
+
+    const preventImageShortcuts = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+
+      /*
+       * Don't interfere with normal typing inside inputs,
+       * textareas, etc.
+       */
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+
+      /*
+       * Prevent common browser shortcuts that are useful
+       * for copying/saving page content.
+       */
+      const key = event.key.toLowerCase();
+
+      const isMac = navigator.platform
+        .toLowerCase()
+        .includes('mac');
+
+      const modifier = isMac ? event.metaKey : event.ctrlKey;
+
+      /*
+       * Ctrl/Cmd + S
+       * Ctrl/Cmd + U
+       * Ctrl/Cmd + Shift + S
+       */
+      if (
+        modifier &&
+        (key === 's' || key === 'u')
+      ) {
+        event.preventDefault();
+      }
+
+      if (
+        modifier &&
+        event.shiftKey &&
+        key === 's'
+      ) {
+        event.preventDefault();
+      }
+    };
+
+    document.addEventListener(
+      'contextmenu',
+      preventImageContextMenu,
+    );
+
+    document.addEventListener(
+      'dragstart',
+      preventImageDrag,
+    );
+
+    document.addEventListener(
+      'keydown',
+      preventImageShortcuts,
+    );
+
+    return () => {
+      document.removeEventListener(
+        'contextmenu',
+        preventImageContextMenu,
+      );
+
+      document.removeEventListener(
+        'dragstart',
+        preventImageDrag,
+      );
+
+      document.removeEventListener(
+        'keydown',
+        preventImageShortcuts,
+      );
+    };
+  }, []);
+
+  /*
    * Automatically move to the next image every 5 seconds.
    *
    * The scan animation also runs for exactly 5 seconds,
@@ -58,7 +173,9 @@ const Hero = () => {
     }
 
     const interval = window.setInterval(() => {
-      setActiveImage((current) => (current + 1) % heroImages.length);
+      setActiveImage(
+        (current) => (current + 1) % heroImages.length,
+      );
     }, 5000);
 
     return () => window.clearInterval(interval);
@@ -92,7 +209,9 @@ const Hero = () => {
 
       <div
         className={`pointer-events-none absolute inset-0 ${
-          lightMode ? 'text-black/[0.035]' : 'text-white/[0.025]'
+          lightMode
+            ? 'text-black/[0.035]'
+            : 'text-white/[0.025]'
         }`}
         style={{
           backgroundImage:
@@ -119,7 +238,9 @@ const Hero = () => {
 
       <div
         className={`pointer-events-none absolute bottom-20 right-10 hidden font-mono text-[10px] tracking-widest lg:block ${
-          lightMode ? 'text-black/[0.08]' : 'text-white/[0.06]'
+          lightMode
+            ? 'text-black/[0.08]'
+            : 'text-white/[0.06]'
         }`}
       >
         &lt;/engineer&gt;
@@ -143,7 +264,9 @@ const Hero = () => {
 
             <span
               className={`text-[10px] font-semibold uppercase tracking-[0.22em] ${
-                lightMode ? 'text-gray-500' : 'text-gray-400'
+                lightMode
+                  ? 'text-gray-500'
+                  : 'text-gray-400'
               }`}
             >
               Software Engineer
@@ -152,7 +275,9 @@ const Hero = () => {
 
           <span
             className={`hidden text-[10px] font-medium tracking-wide sm:block ${
-              lightMode ? 'text-gray-400' : 'text-gray-500'
+              lightMode
+                ? 'text-gray-400'
+                : 'text-gray-500'
             }`}
           >
             Lagos · Nigeria
@@ -175,7 +300,9 @@ const Hero = () => {
 
             <div
               className={`hero-fade-up-delay-1 mb-6 flex items-center gap-2 font-mono text-[9px] font-medium uppercase tracking-[0.18em] ${
-                lightMode ? 'text-gray-400' : 'text-gray-600'
+                lightMode
+                  ? 'text-gray-400'
+                  : 'text-gray-600'
               }`}
             >
               <FontAwesomeIcon
@@ -183,7 +310,9 @@ const Hero = () => {
                 className="text-[9px] text-yellow-400"
               />
 
-              <span>product.engineering.design</span>
+              <span>
+                product.engineering.design
+              </span>
 
               <span className="ml-1 inline-block h-3 w-px animate-pulse bg-yellow-400" />
             </div>
@@ -195,7 +324,9 @@ const Hero = () => {
             <h1
               id="hero-title"
               className={`hero-fade-up-delay-2 max-w-3xl text-[3.25rem] font-semibold leading-[0.94] tracking-[-0.055em] sm:text-6xl md:text-7xl lg:text-[5.25rem] ${
-                lightMode ? 'text-gray-950' : 'text-white'
+                lightMode
+                  ? 'text-gray-950'
+                  : 'text-white'
               }`}
             >
               <span className="block overflow-hidden">
@@ -217,21 +348,26 @@ const Hero = () => {
 
             <p
               className={`hero-fade-up-delay-3 mt-7 max-w-xl text-[15px] leading-7 sm:text-[17px] sm:leading-8 ${
-                lightMode ? 'text-gray-700' : 'text-gray-300'
+                lightMode
+                  ? 'text-gray-700'
+                  : 'text-gray-300'
               }`}
             >
-              I design and build digital products that connect
-              thoughtful interfaces with reliable engineering.
+              I design and build digital products that
+              connect thoughtful interfaces with reliable
+              engineering.
             </p>
 
             <p
               className={`hero-fade-up-delay-3 mt-3 max-w-lg text-[13px] leading-6 ${
-                lightMode ? 'text-gray-500' : 'text-gray-500'
+                lightMode
+                  ? 'text-gray-500'
+                  : 'text-gray-500'
               }`}
             >
               Full-stack development, product thinking and
-              modern web experiences—from the first component
-              to the production infrastructure.
+              modern web experiences—from the first
+              component to the production infrastructure.
             </p>
 
             {/* =================================================
@@ -282,7 +418,9 @@ const Hero = () => {
 
             <div
               className={`hero-fade-up-delay-5 mt-11 flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[10px] ${
-                lightMode ? 'text-gray-400' : 'text-gray-500'
+                lightMode
+                  ? 'text-gray-400'
+                  : 'text-gray-500'
               }`}
             >
               <FontAwesomeIcon
@@ -324,7 +462,9 @@ const Hero = () => {
 
             <div
               className={`absolute -top-7 right-0 z-20 flex items-center gap-2 font-mono text-[9px] font-medium uppercase tracking-[0.14em] ${
-                lightMode ? 'text-gray-500' : 'text-gray-400'
+                lightMode
+                  ? 'text-gray-500'
+                  : 'text-gray-400'
               }`}
             >
               <span className="relative flex h-2 w-2 items-center justify-center">
@@ -338,12 +478,24 @@ const Hero = () => {
 
             {/* Image wrapper */}
 
-            <div className="relative">
+            <div
+              className="relative select-none"
+              data-protected-image="true"
+              onContextMenu={(event) => {
+                event.preventDefault();
+              }}
+              onDragStart={(event) => {
+                event.preventDefault();
+              }}
+              onSelect={(event) => {
+                event.preventDefault();
+              }}
+            >
 
               {/* Offset frame */}
 
               <div
-                className={`absolute -bottom-3 -left-3 h-full w-full rounded-lg border ${
+                className={`pointer-events-none absolute -bottom-3 -left-3 h-full w-full rounded-lg border ${
                   lightMode
                     ? 'border-black/[0.06]'
                     : 'border-white/[0.06]'
@@ -352,12 +504,12 @@ const Hero = () => {
 
               {/* Yellow corner */}
 
-              <div className="absolute -right-2 -top-2 z-20 h-8 w-8 border-r border-t border-yellow-400/70" />
+              <div className="pointer-events-none absolute -right-2 -top-2 z-20 h-8 w-8 border-r border-t border-yellow-400/70" />
 
-              <div className="absolute -bottom-2 -left-2 z-20 h-8 w-8 border-b border-l border-yellow-400/70" />
+              <div className="pointer-events-none absolute -bottom-2 -left-2 z-20 h-8 w-8 border-b border-l border-yellow-400/70" />
 
               {/* =================================================
-                  PORTRAIT CAROUSEL
+                  PROTECTED PORTRAIT CAROUSEL
               ================================================= */}
 
               <div
@@ -388,7 +540,11 @@ const Hero = () => {
                       priority={index === 0}
                       sizes="(max-width: 1024px) 80vw, 350px"
                       aria-hidden={!isActive}
-                      className={`absolute inset-0 object-cover object-center transition-[opacity,transform] duration-[1400ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                      draggable={false}
+                      onContextMenu={(event) => {
+                        event.preventDefault();
+                      }}
+                      className={`pointer-events-none absolute inset-0 object-cover object-center transition-[opacity,transform] duration-[1400ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
                         isActive
                           ? 'z-[1] scale-100 opacity-100 group-hover:scale-[1.025]'
                           : 'z-0 scale-[1.025] opacity-0'
@@ -398,32 +554,49 @@ const Hero = () => {
                 })}
 
                 {/* =================================================
+                    PROTECTION OVERLAY
+                    =================================================
+                    
+                    This invisible layer sits above the image.
+                    It makes direct mouse interaction with the
+                    underlying <img> much harder.
+                */}
+
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 z-[6] cursor-default select-none"
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                  }}
+                  onDragStart={(event) => {
+                    event.preventDefault();
+                  }}
+                />
+
+                {/* =================================================
                     IMAGE OVERLAY
                 ================================================= */}
 
-                <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-70" />
+                <div className="pointer-events-none absolute inset-0 z-[7] bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-70" />
 
                 {/* =================================================
                     SCAN LINE
-
-                    The key forces this animation to restart
-                    every time the active image changes.
                 ================================================= */}
 
                 <div
                   key={activeImage}
-                  className="pointer-events-none absolute inset-x-0 top-0 z-[3] h-px animate-[scan_5s_linear_forwards] bg-yellow-400/30"
+                  className="pointer-events-none absolute inset-x-0 top-0 z-[8] h-px animate-[scan_5s_linear_forwards] bg-yellow-400/30"
                 />
 
                 {/* =================================================
                     CORNER METADATA
                 ================================================= */}
 
-                <div className="absolute bottom-4 left-4 z-[4] font-mono text-[8px] uppercase tracking-[0.15em] text-white/50">
+                <div className="pointer-events-none absolute bottom-4 left-4 z-[9] font-mono text-[8px] uppercase tracking-[0.15em] text-white/50">
                   {heroImages[activeImage].label}
                 </div>
 
-                <div className="absolute right-4 top-4 z-[4] font-mono text-[8px] text-white/50">
+                <div className="pointer-events-none absolute right-4 top-4 z-[9] font-mono text-[8px] text-white/50">
                   DEV
                 </div>
 
@@ -431,7 +604,7 @@ const Hero = () => {
                     EDGE
                 ================================================= */}
 
-                <div className="pointer-events-none absolute inset-0 z-[5] ring-1 ring-inset ring-white/10" />
+                <div className="pointer-events-none absolute inset-0 z-[10] ring-1 ring-inset ring-white/10" />
               </div>
             </div>
 
@@ -442,7 +615,9 @@ const Hero = () => {
             <div className="mt-4 flex items-center justify-between">
               <span
                 className={`font-mono text-[9px] uppercase tracking-[0.16em] ${
-                  lightMode ? 'text-gray-400' : 'text-gray-500'
+                  lightMode
+                    ? 'text-gray-400'
+                    : 'text-gray-500'
                 }`}
               >
                 Product · Engineering
@@ -450,7 +625,9 @@ const Hero = () => {
 
               <span
                 className={`font-mono text-[9px] ${
-                  lightMode ? 'text-gray-400' : 'text-gray-600'
+                  lightMode
+                    ? 'text-gray-400'
+                    : 'text-gray-600'
                 }`}
               >
                 {String(activeImage + 1).padStart(2, '0')} /{' '}
@@ -466,13 +643,16 @@ const Hero = () => {
 
         <div
           className={`hero-fade-up-delay-5 mt-14 flex items-center justify-between border-t pt-5 ${
-            lightMode ? 'border-black/10' : 'border-white/10'
+            lightMode
+              ? 'border-black/10'
+              : 'border-white/10'
           }`}
         >
 
           {/* Social */}
 
           <div className="flex items-center gap-5">
+
             <a
               href="https://x.com/Aaytriple"
               target="_blank"
@@ -602,14 +782,6 @@ const Hero = () => {
           }
         }
 
-        /*
-         * Carousel scan.
-         *
-         * The scan takes exactly 5 seconds.
-         * When it reaches the bottom, React changes the image
-         * and the keyed scan line starts again from the top.
-         */
-
         @keyframes scan {
           0% {
             transform: translateY(0);
@@ -682,6 +854,26 @@ const Hero = () => {
             cubic-bezier(0.16, 1, 0.3, 1) both;
         }
 
+        /*
+         * Prevent selection on the protected image area.
+         */
+        [data-protected-image='true'] {
+          -webkit-user-select: none;
+          -moz-user-select: none;
+          user-select: none;
+
+          -webkit-touch-callout: none;
+        }
+
+        /*
+         * Prevent browser drag behavior.
+         */
+        [data-protected-image='true'] img {
+          -webkit-user-drag: none;
+          user-drag: none;
+          user-select: none;
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .hero-fade-up,
           .hero-fade-up-delay-1,
@@ -705,3 +897,4 @@ const Hero = () => {
 };
 
 export default Hero;
+

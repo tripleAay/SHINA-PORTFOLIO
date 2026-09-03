@@ -1,6 +1,6 @@
 'use client';
 
-import { useContext } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -17,9 +17,52 @@ import {
 
 import { ThemeContext } from '../contexts/ThemeContext';
 import picB from '../assets/images/pic b.png';
+import picC from '../assets/images/aa.png';
+import picD from '../assets/images/aaa.png';
+
+const heroImages = [
+  {
+    src: picB,
+    label: 'SHINA / 001',
+  },
+  {
+    src: picC,
+    label: 'SHINA / 002',
+  },
+  {
+    src: picD,
+    label: 'SHINA / 003',
+  },
+];
 
 const Hero = () => {
   const { lightMode } = useContext(ThemeContext);
+
+  const [activeImage, setActiveImage] = useState(0);
+
+  /*
+   * Automatically move to the next image every 5 seconds.
+   *
+   * The scan animation also runs for exactly 5 seconds,
+   * so the image changes immediately after the scan completes.
+   *
+   * Auto-sliding is disabled for users who prefer reduced motion.
+   */
+  useEffect(() => {
+    const reduceMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches;
+
+    if (reduceMotion) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setActiveImage((current) => (current + 1) % heroImages.length);
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, []);
 
   const scrollToContact = () => {
     document
@@ -309,49 +352,86 @@ const Hero = () => {
 
               {/* Yellow corner */}
 
-              <div className="absolute -right-2 -top-2 z-10 h-8 w-8 border-r border-t border-yellow-400/70" />
+              <div className="absolute -right-2 -top-2 z-20 h-8 w-8 border-r border-t border-yellow-400/70" />
 
-              <div className="absolute -bottom-2 -left-2 z-10 h-8 w-8 border-b border-l border-yellow-400/70" />
+              <div className="absolute -bottom-2 -left-2 z-20 h-8 w-8 border-b border-l border-yellow-400/70" />
 
-              {/* Portrait */}
+              {/* =================================================
+                  PORTRAIT CAROUSEL
+              ================================================= */}
 
               <div
-                className={`relative aspect-[4/5] overflow-hidden rounded-lg transition-all duration-500 hover:-translate-y-1 ${
+                className={`group relative aspect-[4/5] overflow-hidden rounded-lg transition-all duration-500 hover:-translate-y-1 ${
                   lightMode
                     ? 'bg-[#dededc] ring-1 ring-black/10'
                     : 'bg-[#151517] ring-1 ring-white/10'
                 }`}
               >
-                <Image
-                  src={picB}
-                  alt="Adeshina Adedokun"
-                  fill
-                  priority
-                  sizes="(max-width: 1024px) 80vw, 350px"
-                  className="object-cover object-center transition-transform duration-1000 ease-out hover:scale-[1.025]"
+
+                {/* =================================================
+                    IMAGES
+                ================================================= */}
+
+                {heroImages.map((image, index) => {
+                  const isActive = activeImage === index;
+
+                  return (
+                    <Image
+                      key={image.label}
+                      src={image.src}
+                      alt={
+                        isActive
+                          ? 'Adeshina Adedokun'
+                          : ''
+                      }
+                      fill
+                      priority={index === 0}
+                      sizes="(max-width: 1024px) 80vw, 350px"
+                      aria-hidden={!isActive}
+                      className={`absolute inset-0 object-cover object-center transition-[opacity,transform] duration-[1400ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                        isActive
+                          ? 'z-[1] scale-100 opacity-100 group-hover:scale-[1.025]'
+                          : 'z-0 scale-[1.025] opacity-0'
+                      }`}
+                    />
+                  );
+                })}
+
+                {/* =================================================
+                    IMAGE OVERLAY
+                ================================================= */}
+
+                <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-70" />
+
+                {/* =================================================
+                    SCAN LINE
+
+                    The key forces this animation to restart
+                    every time the active image changes.
+                ================================================= */}
+
+                <div
+                  key={activeImage}
+                  className="pointer-events-none absolute inset-x-0 top-0 z-[3] h-px animate-[scan_5s_linear_forwards] bg-yellow-400/30"
                 />
 
-                {/* Image overlay */}
+                {/* =================================================
+                    CORNER METADATA
+                ================================================= */}
 
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-70" />
-
-                {/* Subtle scan line */}
-
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-px animate-[scan_5s_linear_infinite] bg-yellow-400/30" />
-
-                {/* Corner metadata */}
-
-                <div className="absolute bottom-4 left-4 font-mono text-[8px] uppercase tracking-[0.15em] text-white/50">
-                  SHINA / 001
+                <div className="absolute bottom-4 left-4 z-[4] font-mono text-[8px] uppercase tracking-[0.15em] text-white/50">
+                  {heroImages[activeImage].label}
                 </div>
 
-                <div className="absolute right-4 top-4 font-mono text-[8px] text-white/50">
+                <div className="absolute right-4 top-4 z-[4] font-mono text-[8px] text-white/50">
                   DEV
                 </div>
 
-                {/* Edge */}
+                {/* =================================================
+                    EDGE
+                ================================================= */}
 
-                <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/10" />
+                <div className="pointer-events-none absolute inset-0 z-[5] ring-1 ring-inset ring-white/10" />
               </div>
             </div>
 
@@ -360,7 +440,6 @@ const Hero = () => {
             ================================================= */}
 
             <div className="mt-4 flex items-center justify-between">
-
               <span
                 className={`font-mono text-[9px] uppercase tracking-[0.16em] ${
                   lightMode ? 'text-gray-400' : 'text-gray-500'
@@ -374,7 +453,8 @@ const Hero = () => {
                   lightMode ? 'text-gray-400' : 'text-gray-600'
                 }`}
               >
-                01 / 04
+                {String(activeImage + 1).padStart(2, '0')} /{' '}
+                {String(heroImages.length).padStart(2, '0')}
               </span>
             </div>
           </div>
@@ -393,7 +473,6 @@ const Hero = () => {
           {/* Social */}
 
           <div className="flex items-center gap-5">
-
             <a
               href="https://x.com/Aaytriple"
               target="_blank"
@@ -523,13 +602,21 @@ const Hero = () => {
           }
         }
 
+        /*
+         * Carousel scan.
+         *
+         * The scan takes exactly 5 seconds.
+         * When it reaches the bottom, React changes the image
+         * and the keyed scan line starts again from the top.
+         */
+
         @keyframes scan {
           0% {
             transform: translateY(0);
             opacity: 0;
           }
 
-          20% {
+          12% {
             opacity: 1;
           }
 
@@ -582,7 +669,8 @@ const Hero = () => {
         }
 
         .hero-word-reveal {
-          animation: wordReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+          animation: wordReveal 0.8s
+            cubic-bezier(0.16, 1, 0.3, 1) both;
         }
 
         .hero-word-reveal-delay {
@@ -590,7 +678,8 @@ const Hero = () => {
         }
 
         .hero-image-reveal {
-          animation: imageReveal 1s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+          animation: imageReveal 1s 0.2s
+            cubic-bezier(0.16, 1, 0.3, 1) both;
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -602,6 +691,11 @@ const Hero = () => {
           .hero-fade-up-delay-5,
           .hero-word-reveal,
           .hero-image-reveal {
+            animation: none;
+          }
+
+          .animate-ping,
+          .animate-pulse {
             animation: none;
           }
         }

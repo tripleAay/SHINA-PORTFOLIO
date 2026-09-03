@@ -280,8 +280,8 @@ const Header = () => {
             : 'pointer-events-none max-h-0 opacity-0'
         } ${
           lightMode
-            ? 'border-gray-900/10 bg-white/95 shadow-lg backdrop-blur-xl'
-            : 'border-white/10 bg-gray-950/95 shadow-xl shadow-black/20 backdrop-blur-xl'
+            ? 'border-gray-900/10 bg-[#EAEAEA] shadow-lg backdrop-blur-xl'
+            : 'border-white/10 bg-[#0b0b0d] shadow-xl shadow-black/20 backdrop-blur-xl'
         }`}
       >
         <nav className="p-2" aria-label="Mobile navigation">

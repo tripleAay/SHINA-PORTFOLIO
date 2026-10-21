@@ -1,22 +1,59 @@
-import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
-import '@/app/globals.css';
-import { ThemeProvider } from './contexts/ThemeContext';
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "@/app/globals.css";
+
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
 });
 
+const SITE_URL = "https://www.shinaadedokun.com";
+
+const title =
+  "Adeshina Adedokun | Software Engineer, Product & Design";
+
+const description =
+  "Adeshina Adedokun is a software engineer, product builder and brand designer in Lagos, Nigeria. Explore work across web development, engineering and design.";
+
 export const metadata: Metadata = {
-  title: 'Shina Adedokun | Software Engineer',
-  description:
-    'Portfolio of Shina Adedokun — Software Engineer building thoughtful digital products for the web.',
+  metadataBase: new URL(SITE_URL),
+
+  title: {
+    default: title,
+    template: "%s | Adeshina Adedokun",
+  },
+
+  description,
+
+  authors: [
+    {
+      name: "Adeshina Adedokun",
+      url: SITE_URL,
+    },
+  ],
+
+  creator: "Adeshina Adedokun",
+
+  openGraph: {
+    type: "website",
+    siteName: "Adeshina Adedokun",
+    locale: "en_NG",
+    title,
+    description,
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+  },
 };
 
 export default function RootLayout({
@@ -29,9 +66,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );
